@@ -18,6 +18,7 @@ public class ServidorDHCP {
     private ArrayList<Subred> subredes;
     private Map<Pair<Integer,byte[]>,Cliente> clientes;
     private Map<Pair<byte[],byte[]>,Arrendamiento> arrendamientos;
+    private Map<DireccionIP,Arrendamiento> ofertas;
 
     public ServidorDHCP() {
         subredes=new ArrayList<>();
@@ -48,6 +49,13 @@ public class ServidorDHCP {
     public void setArrendamientos(Map<Pair<byte[], byte[]>, Arrendamiento> arrendamientos) {
         this.arrendamientos = arrendamientos;
     }
-    
+
+    public Map<DireccionIP, Arrendamiento> getOfertas() {
+        return ofertas;
+    }
+
+    public void setOfertas(Map<DireccionIP, Arrendamiento> ofertas) {
+        this.ofertas = ofertas;
+    }
     
 }

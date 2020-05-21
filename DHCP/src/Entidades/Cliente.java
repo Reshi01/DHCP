@@ -11,6 +11,7 @@ package Entidades;
  */
 public class Cliente {
     private byte[] mac;
+    private Subred subred;
     private Arrendamiento arrendmainetoActual;
     private Arrendamiento arrendamientoAnterior;
 
@@ -26,6 +27,14 @@ public class Cliente {
         this.mac = mac;
     }
 
+    public Subred getSubred() {
+        return subred;
+    }
+
+    public void setSubred(Subred subred) {
+        this.subred = subred;
+    }
+    
     public Arrendamiento getArrendmainetoActual() {
         return arrendmainetoActual;
     }
