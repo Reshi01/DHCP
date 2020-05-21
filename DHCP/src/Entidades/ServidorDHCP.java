@@ -25,6 +25,26 @@ public class ServidorDHCP {
         clientes=new HashMap<Pair<Integer,byte[]>,Cliente>();
         arrendamientos=new HashMap<Pair<byte[],byte[]>,Arrendamiento>();
     }
+    
+    public void correrServidor(){
+        
+    }
+    
+    private void manejarDiscover(){
+        
+    }
+    
+    private void manejarRequest(){
+        
+    }
+    
+    private void manejarRelease(){
+        
+    }
+    
+    private void enviarMensaje(PaqueteDHCP mensaje, byte[] ipDestino){
+        
+    }
 
     public ArrayList<Subred> getSubredes() {
         return subredes;
