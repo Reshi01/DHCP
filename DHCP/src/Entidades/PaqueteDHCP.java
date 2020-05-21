@@ -23,35 +23,138 @@ public class PaqueteDHCP {
     private byte[] yiaddr;
     private byte[] siaddr;
     private byte[] giaddr;
-    private byte[] chddr;
+    private byte[] chaddr;
     private byte[] sname;
     private byte[] file;
     private byte messageType;
     private ArrayList<Integer> parameterRequestList;
     private byte[] requestedIpAddress;
-    private int ipAddressLeaseTime;
-    private byte[] serverIdentiferier;
+    private byte[] ipAddressLeaseTime;
+    private byte[] serverIdentifier;
     private byte[] subnetMask;
     private ArrayList<byte[]> dns;
     private ArrayList<byte[]> router;
 
-    public PaqueteDHCP() {
-        xid=new byte[4];
+    public PaqueteDHCP(byte[] bytes) {
+        if(bytes.length < 300){ //El tamaño mínimo del mensaje es de 300 bytes
+            System.out.println("Ocurrió un problema leyendo los bytes.");
+        }
+        op = bytes[0];
+        htype = bytes[1];
+        hlen = bytes[2];
+        hops = bytes[3];
+        xid = new byte [4];
+        for(int i = 0; i < 4; i++){
+            xid[i] = bytes[i + 4];
+        }
         secs=new byte[2];
+        secs[0] = bytes[8];
+        secs[1] = bytes[9];
         flags=new byte[2];
+        flags[0] = bytes[10];
+        flags[0] = bytes[11];
         ciaddr=new byte[4];
+        for(int i = 0; i < 4; i++){
+            ciaddr[i] = bytes[i + 12];
+        }
         yiaddr=new byte[4];
+        for(int i = 0; i < 4; i++){
+            yiaddr[i] = bytes[i + 16];
+        }
         siaddr=new byte[4];
+        for(int i = 0; i < 4; i++){
+            siaddr[i] = bytes[i + 20];
+        }
         giaddr=new byte[4];
-        chddr=new byte[16];
+        for(int i = 0; i < 4; i++){
+            giaddr[i] = bytes[i + 24];
+        }
+        chaddr=new byte[16];
+        for(int i = 0; i < 16; i++){
+            chaddr[i] = bytes[i + 28];
+        }
         sname=new byte[64];
+        for(int i = 0; i < 64; i++){
+            sname[i] = bytes[i + 44];
+        }
         file=new byte[128];
-        parameterRequestList=new ArrayList<>();
-        requestedIpAddress=new byte[4];
-        serverIdentiferier=new byte[4];
-        subnetMask=new byte[4];
-        dns=new ArrayList<>();
-        router=new ArrayList<>();
+        for(int i = 0; i < 128; i++){
+            file[i] = bytes[i + 108];
+        }
+        //opciones
+        int i = 240; //Se saltan también los primeros 4 bytes del campo de opciones, que tienen la "magic cookie"
+        int codigo;
+        int tam;
+        while(true){
+            //Para cada opción:
+            codigo = Byte.toUnsignedInt(bytes[i]);
+            i++;
+            if(codigo == 255){ //Opción End
+                break;
+            }
+            tam = Byte.toUnsignedInt(bytes[i]);
+            i++;
+            if(codigo == 55){ //Opción Parameter Request List
+                parameterRequestList = new ArrayList<>();
+                for(int j = 0; j < tam; j++){
+                    parameterRequestList.add(Byte.toUnsignedInt(bytes[i]));
+                    i++;
+                }
+            }
+            else if(codigo == 50){ //Opción Requested IP Address
+                requestedIpAddress = new byte[tam];
+                for(int j = 0; j < tam; j++){
+                    requestedIpAddress[j] = bytes[i];
+                    i++;
+                }
+            }
+            else if(codigo == 51){ //Opción IP Address Lease Time
+                ipAddressLeaseTime = new byte[tam];
+                for(int j = 0; j < tam; j++){
+                    requestedIpAddress[j] = bytes[i];
+                    i++;
+                }
+            }
+            else if(codigo == 54){ //Opción Server Identifier
+                serverIdentifier = new byte[tam];
+                for(int j = 0; j < tam; j++){
+                    requestedIpAddress[j] = bytes[i];
+                    i++;
+                }
+            }
+            else if(codigo == 1){ //Opción Subnet Mask
+                subnetMask = new byte[tam];
+                for(int j = 0; j < tam; j++){
+                    requestedIpAddress[j] = bytes[i];
+                    i++;
+                }
+            }
+            else if(codigo == 6){ //Opción Domain Name Service
+                dns = new ArrayList<>();
+                int cant = tam/4;
+                for(int j = 0; j < cant; j++){
+                    byte[] dir = new byte[4];
+                    for(int k = 0; k < 4; k++){
+                        dir[k] = bytes[i];
+                        i++;
+                    }
+                    dns.add(dir);
+                }
+            }
+            else if(codigo == 3){ //Opción Router
+                router = new ArrayList<>();
+                int cant = tam/4;
+                for(int j = 0; j < cant; j++){
+                    byte[] dir = new byte[4];
+                    for(int k = 0; k < 4; k++){
+                        dir[k] = bytes[i];
+                        i++;
+                    }
+                    dns.add(dir);
+                }
+            }
+            //Falta considerar la opción Option Overload 
+        }
     }
     
     public byte[] construirPaquete(){
@@ -146,12 +249,12 @@ public class PaqueteDHCP {
         this.giaddr = giaddr;
     }
 
-    public byte[] getChddr() {
-        return chddr;
+    public byte[] getChaddr() {
+        return chaddr;
     }
 
-    public void setChddr(byte[] chddr) {
-        this.chddr = chddr;
+    public void setChaddr(byte[] chddr) {
+        this.chaddr = chddr;
     }
 
     public byte[] getSname() {
@@ -194,20 +297,20 @@ public class PaqueteDHCP {
         this.requestedIpAddress = requestedIpAddress;
     }
 
-    public int getIpAddressLeaseTime() {
+    public byte[] getIpAddressLeaseTime() {
         return ipAddressLeaseTime;
     }
 
-    public void setIpAddressLeaseTime(int ipAddressLeaseTime) {
+    public void setIpAddressLeaseTime(byte[] ipAddressLeaseTime) {
         this.ipAddressLeaseTime = ipAddressLeaseTime;
     }
 
     public byte[] getServerIdentiferier() {
-        return serverIdentiferier;
+        return serverIdentifier;
     }
 
     public void setServerIdentiferier(byte[] serverIdentiferier) {
-        this.serverIdentiferier = serverIdentiferier;
+        this.serverIdentifier = serverIdentiferier;
     }
 
     public byte[] getSubnetMask() {
