@@ -182,6 +182,7 @@ public class ServidorDHCP {
         byte[] direccion=new byte[4];
         boolean fin=false;
         direccion=subred.getDirecciones().get(0).getDireccion();
+        int ndir=1;
         while(!fin){
             DireccionIP ip=new DireccionIP();
             direccion[0]+=1;
@@ -202,8 +203,12 @@ public class ServidorDHCP {
             if(fin)
                 break;
             else{
-                
+                ip.setDisponible(true);
+                ip.setTiempoArrendamiento(subred.getDirecciones().get(0).getTiempoArrendamiento());
+                ip.setDireccion(direccion);
             }
+            subred.getDirecciones().add(ndir, ip);
+            ndir++;
         }
     }
 }

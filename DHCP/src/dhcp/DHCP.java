@@ -22,7 +22,7 @@ public class DHCP {
      */
     public static void main(String[] args) throws IOException {
         ServidorDHCP servidor=new ServidorDHCP();
-        byte i= (byte) 200;
+        byte i= (byte) 1;
         i+=1;
         int j= i & 0xFF;
         System.out.println(": "+j);
