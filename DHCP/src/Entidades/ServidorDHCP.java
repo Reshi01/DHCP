@@ -179,6 +179,31 @@ public class ServidorDHCP {
     }
 //Para una subred genera las direcciones posibles entre la posicion 0 de direcciones y posicion  1 del arreglo de direcciones. (Primera y ultima direccion)
     private void completarDireccionesIp(Subred subred) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        byte[] direccion=new byte[4];
+        boolean fin=false;
+        direccion=subred.getDirecciones().get(0).getDireccion();
+        while(!fin){
+            DireccionIP ip=new DireccionIP();
+            direccion[0]+=1;
+            if((direccion[0]& 0xFF)==0){
+                direccion[1]+=1;
+            }
+            if((direccion[1]& 0xFF)==0){
+                direccion[2]+=1;
+            }
+            if((direccion[2]& 0xFF)==0){
+                direccion[3]+=1;
+            }
+            fin=false;
+            for (int i = 0; i < 4; i++) {
+                if(direccion[i]!=subred.getDirecciones().get(subred.getDirecciones().size()).getDireccion()[i])
+                    fin=true;
+            }
+            if(fin)
+                break;
+            else{
+                
+            }
+        }
     }
 }
