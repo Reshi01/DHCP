@@ -149,15 +149,10 @@ public class ServidorDHCP {
         for (Subred subred : this.subredes) {
             completarDireccionesIp(subred);
         }
-        for (DireccionIP object : this.subredes.get(0).getDirecciones()) {
-            System.out.println("subred "+(object.getDireccion()[1]&0xFF));
-            System.out.println(" "+object.getDireccion()[0]+"."+object.getDireccion()[1]+"."+object.getDireccion()[2]+"."+object.getDireccion()[3]);
-        }
         return true;
     }
 // a partir del arreglo de datos crea una subred y la anade al arreglo de subredes.
     private void agregarSubred(String[] datos) {
-        System.out.println("datos "+datos[0]);
         Subred subred=new Subred();
         String[] direccion;
         byte[] octetos=new byte[4];
@@ -170,31 +165,34 @@ public class ServidorDHCP {
         }
         subred.setDireccionIp(octetos);
         //mascara
+        byte[] octetos1=new byte[4];
         direccion=datos[1].split("-");
         for (int i = 0; i < 4; i++) {
             aux=Integer.parseInt(direccion[i]);
-            octetos[i]=aux.byteValue();
+            octetos1[i]=aux.byteValue();
         }
-        subred.setMascaraRed(octetos);
+        subred.setMascaraRed(octetos1);
         //primera direccion
+        byte[] octetos2=new byte[4];
         direccion=datos[2].split("-");
         for (int i = 0; i < 4; i++) {
             aux=Integer.parseInt(direccion[i]);
-            octetos[i]=aux.byteValue();
+            octetos2[i]=aux.byteValue();
         }
         DireccionIP direccionIp1=new DireccionIP();
-        direccionIp1.setDireccion(octetos);
+        direccionIp1.setDireccion(octetos2);
         direccionIp1.setTiempoArrendamiento(Integer.parseInt(datos[4]));
         direccionIp1.setDisponible(true);
         subred.getDirecciones().add(0, direccionIp1);
         //ultima direccion
         direccion=datos[3].split("-");
+        byte[] octetos3=new byte[4];
         for (int i = 0; i < 4; i++) {
             aux=Integer.parseInt(direccion[i]);
-            octetos[i]=aux.byteValue();
+            octetos3[i]=aux.byteValue();
         }
         DireccionIP direccionIp2=new DireccionIP();
-        direccionIp2.setDireccion(octetos);
+        direccionIp2.setDireccion(octetos3);
         direccionIp2.setTiempoArrendamiento(Integer.parseInt(datos[4]));
         direccionIp2.setDisponible(true);
         subred.getDirecciones().add(1,direccionIp2);
@@ -211,7 +209,7 @@ public class ServidorDHCP {
         }
         //dns
         int ndns=Integer.parseInt(datos[6+ngateways]);
-        for (int i = 7+ngateways; i < 6+ngateways+ndns; i++) {
+        for (int i = 7+ngateways; i < 7+ngateways+ndns; i++) {
             byte[] dns=new byte[4];
             direccion=datos[i].split("-");
             for (int j = 0; j < 4; j++) {
@@ -221,37 +219,44 @@ public class ServidorDHCP {
             subred.getDns().add(dns);
         }
         this.subredes.add(subred);
-        System.out.println("** "+(subred.getDireccionIp()[1]&0xFF));
-        System.out.println("*** "+subred.getDirecciones().size());
-        System.out.println("**** "+(subred.getDirecciones().get(0).getDireccion()[3]&0xFF));
-        System.out.println("**** "+(subred.getDirecciones().get(1).getDireccion()[3]&0xFF));
-        System.out.println("***** "+subred.getDns().size());
-        System.out.println("***** "+subred.getGateway().size());
         
     }
 //Para una subred genera las direcciones posibles entre la posicion 0 de direcciones y posicion  1 del arreglo de direcciones. (Primera y ultima direccion)
     private void completarDireccionesIp(Subred subred) {
-        byte[] direccion=new byte[4];
+        byte[] ultima=subred.getDirecciones().get(1).getDireccion();
+        byte[] aux=new byte[4];
         boolean fin=false;
-        direccion=subred.getDirecciones().get(0).getDireccion();
+        for (int i = 0; i < 4; i++) {
+            aux[i]=subred.getDirecciones().get(0).getDireccion()[i];
+        }
         int ndir=1;
         do{
             DireccionIP ip=new DireccionIP();
-            direccion[0]+=1;
-            if((direccion[0]& 0xFF)==0){
-                direccion[1]+=1;
+            if((aux[3]&0xFF)==255){
+                aux[3]=0;
+                if((aux[2]&0xFF)==255){
+                    aux[2]=0;
+                    if((aux[1]&0xFF)==255){
+                        aux[1]=0;
+                        if((aux[0]&0xFF)==255){
+                            aux[0]=0;
+                        }else{
+                            aux[0]+=1;
+                        }
+                    }else{
+                        aux[1]+=1;
+                    }
+                }else{
+                    aux[2]+=1;
+                }
+            }else{
+                aux[3]+=1;
             }
-            if((direccion[1]& 0xFF)==0){
-                direccion[2]+=1;
-            }
-            if((direccion[2]& 0xFF)==0){
-                direccion[3]+=1;
-            }
+            
             fin=false;
-            System.out.println("a  "+(direccion[3]&0xFF)+" "+(subred.getDirecciones().get(subred.getDirecciones().size()-1).getDireccion()[3]& 0xFF));
             for (int i = 0; i < 4; i++) {
                 fin=true;
-                if((direccion[i]& 0xFF)!=(subred.getDirecciones().get(subred.getDirecciones().size()-1).getDireccion()[i]& 0xFF)){
+                if((aux[i]& 0xFF)!=(ultima[i]& 0xFF)){
                     fin=false;
                     break;
                 }
@@ -259,12 +264,17 @@ public class ServidorDHCP {
             if(fin)
                 break;
             else{
+                byte[] direccion=new byte[4];
+                for (int i = 0; i < 4; i++) {
+                    direccion[i]=aux[i];
+                }
                 ip.setDisponible(true);
                 ip.setTiempoArrendamiento(subred.getDirecciones().get(0).getTiempoArrendamiento());
                 ip.setDireccion(direccion);
+                subred.getDirecciones().add(ndir, ip);
+                ndir++;
             }
-            subred.getDirecciones().add(ndir, ip);
-            ndir++;
         }while(!fin);
     }
+    
 }
