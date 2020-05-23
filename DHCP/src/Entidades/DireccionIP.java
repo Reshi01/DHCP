@@ -11,12 +11,10 @@ package Entidades;
  */
 public class DireccionIP {
     private byte[] direccion;
-    private int tiempoArrendamiento;
     private boolean disponible;
 
     public DireccionIP() {
         direccion=new byte[4];
-        tiempoArrendamiento=0;
         disponible=true;
     }
 
@@ -26,14 +24,6 @@ public class DireccionIP {
 
     public void setDireccion(byte[] direccion) {
         this.direccion = direccion;
-    }
-
-    public int getTiempoArrendamiento() {
-        return tiempoArrendamiento;
-    }
-
-    public void setTiempoArrendamiento(int tiempoArrendamiento) {
-        this.tiempoArrendamiento = tiempoArrendamiento;
     }
 
     public boolean isDisponible() {

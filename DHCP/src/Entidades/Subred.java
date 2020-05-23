@@ -14,6 +14,7 @@ import java.util.ArrayList;
 public class Subred {
     private byte[] direccionIp;
     private byte[] mascaraRed;
+    private int tiempoArrendamiento;
     private ArrayList<byte[]> gateway;
     private ArrayList<byte[]> dns;
     private ArrayList<DireccionIP> direcciones;
@@ -64,6 +65,14 @@ public class Subred {
 
     public void setDirecciones(ArrayList<DireccionIP> direcciones) {
         this.direcciones = direcciones;
+    }
+
+    public int getTiempoArrendamiento() {
+        return tiempoArrendamiento;
+    }
+
+    public void setTiempoArrendamiento(int tiempoArrendamiento) {
+        this.tiempoArrendamiento = tiempoArrendamiento;
     }
     
     

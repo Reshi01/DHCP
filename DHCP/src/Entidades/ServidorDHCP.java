@@ -74,7 +74,8 @@ public class ServidorDHCP {
                     if(cliente != null){
                         int tipoM = Byte.toUnsignedInt(pDHCP.getMessageType());
                         if(tipoM == 1){ //Si el mensaje recibido es DHCPDISCOVER
-                            //PaqueteDHCP respuesta = crearPaqueteDHCPOffer(cliente, pDHCP);
+                            PaqueteDHCP respuesta = crearPaqueteDHCPOffer(cliente, pDHCP);
+                            
                         }
                         else if(tipoM == 3){ //Si el mensaje recibido es DHCPREQUEST
                             
