@@ -34,7 +34,7 @@ public class PaqueteDHCP {
     private byte[] subnetMask;
     private ArrayList<byte[]> dns;
     private ArrayList<byte[]> router;
-
+    
     public PaqueteDHCP(byte[] bytes) {
         if(bytes.length < 300){ //El tamaño mínimo del mensaje es de 300 bytes
             System.out.println("Ocurrió un problema leyendo los bytes.");
@@ -339,6 +339,8 @@ public class PaqueteDHCP {
     public void setRouter(ArrayList<byte[]> router) {
         this.router = router;
     }
-    
+//quitar despues del pull
+    public PaqueteDHCP() {
+    }
     
 }

@@ -122,7 +122,32 @@ public class ServidorDHCP {
     public void setOfertas(Map<DireccionIP, Arrendamiento> ofertas) {
         this.ofertas = ofertas;
     }
-
+    
+    public void crearPaqueteDHCPOffer(Cliente cliente, PaqueteDHCP paquete){
+        boolean direccionAsignada=false;
+        PaqueteDHCP paqueteOffer=new PaqueteDHCP();
+        if(cliente.getArrendmainetoActual()!=null){
+            direccionAsignada=true;
+        }else if(cliente.getArrendamientoAnterior()!=null){
+            direccionAsignada=true;
+        }else if(paquete.getRequestedIpAddress()!=null && perteneceSubred(paquete.getRequestedIpAddress(),cliente.getSubred())){
+            direccionAsignada=true;
+        }else{
+            
+        }
+        if(!direccionAsignada){
+            System.out.println("No se encontro una direccion disponible: "+(cliente.getMac()[0]&0xFF)+"."+(cliente.getMac()[1]&0xFF)+"."+(cliente.getMac()[2]&0xFF)+"."+(cliente.getMac()[3]&0xFF)+"."+(cliente.getMac()[4]&0xFF)+"."+(cliente.getMac()[5]&0xFF));
+            System.out.println("En la subred: "+(cliente.getSubred().getDireccionIp()[0]&0xFF)+"."+(cliente.getSubred().getDireccionIp()[1]&0xFF)+"."+(cliente.getSubred().getDireccionIp()[2]&0xFF)+"."+(cliente.getSubred().getDireccionIp()[3]&0xFF));
+            return;
+        }
+        paqueteOffer.setOp((byte)2);
+        paqueteOffer.setHtype(paquete.getHtype());
+        paqueteOffer.setHlen(paquete.getHlen());
+        paqueteOffer.setHops((byte)0);
+        paqueteOffer.setXid(paquete.getXid());
+        
+    }
+    
     public boolean cofigurar() throws FileNotFoundException, IOException {
         JFileChooser selector=new JFileChooser();
         JOptionPane.showMessageDialog(null, "Indique archivo de configuracion", "Indique archivo de configuracion", JOptionPane.INFORMATION_MESSAGE);
@@ -275,6 +300,10 @@ public class ServidorDHCP {
                 ndir++;
             }
         }while(!fin);
+    }
+//quitar despues de pull
+    private boolean perteneceSubred(byte[] requestedIpAddress, Subred subred) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
 }
