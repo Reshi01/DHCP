@@ -103,37 +103,43 @@ public class ServidorDHCP {
         BufferedReader lector = new BufferedReader(file);
         while((aux = lector.readLine()) != null) {
             System.out.println(aux);
-            datos=aux.split(aux);
+            datos=aux.split(" ");
             agregarSubred(datos);
+            datos=null;
         }
         lector.close();
         for (Subred subred : this.subredes) {
             completarDireccionesIp(subred);
         }
+        for (DireccionIP object : this.subredes.get(0).getDirecciones()) {
+            System.out.println("subred "+(object.getDireccion()[1]&0xFF));
+            System.out.println(" "+object.getDireccion()[0]+"."+object.getDireccion()[1]+"."+object.getDireccion()[2]+"."+object.getDireccion()[3]);
+        }
         return true;
     }
 // a partir del arreglo de datos crea una subred y la anade al arreglo de subredes.
     private void agregarSubred(String[] datos) {
+        System.out.println("datos "+datos[0]);
         Subred subred=new Subred();
         String[] direccion;
         byte[] octetos=new byte[4];
         Integer aux;
         //Direccion ip de subred
-        direccion=datos[0].split(".");
+        direccion=datos[0].split("-");
         for (int i = 0; i < 4; i++) {
             aux=Integer.parseInt(direccion[i]);
             octetos[i]=aux.byteValue();
         }
         subred.setDireccionIp(octetos);
         //mascara
-        direccion=datos[1].split(".");
+        direccion=datos[1].split("-");
         for (int i = 0; i < 4; i++) {
             aux=Integer.parseInt(direccion[i]);
             octetos[i]=aux.byteValue();
         }
         subred.setMascaraRed(octetos);
         //primera direccion
-        direccion=datos[2].split(".");
+        direccion=datos[2].split("-");
         for (int i = 0; i < 4; i++) {
             aux=Integer.parseInt(direccion[i]);
             octetos[i]=aux.byteValue();
@@ -142,9 +148,9 @@ public class ServidorDHCP {
         direccionIp1.setDireccion(octetos);
         direccionIp1.setTiempoArrendamiento(Integer.parseInt(datos[4]));
         direccionIp1.setDisponible(true);
-        subred.getDirecciones().add(direccionIp1);
+        subred.getDirecciones().add(0, direccionIp1);
         //ultima direccion
-        direccion=datos[3].split(".");
+        direccion=datos[3].split("-");
         for (int i = 0; i < 4; i++) {
             aux=Integer.parseInt(direccion[i]);
             octetos[i]=aux.byteValue();
@@ -153,12 +159,12 @@ public class ServidorDHCP {
         direccionIp2.setDireccion(octetos);
         direccionIp2.setTiempoArrendamiento(Integer.parseInt(datos[4]));
         direccionIp2.setDisponible(true);
-        subred.getDirecciones().add(direccionIp2);
+        subred.getDirecciones().add(1,direccionIp2);
         //gateways
         int ngateways=Integer.parseInt(datos[5]);
         for (int i =6; i < 6+ngateways; i++) {
             byte[] gateway=new byte[4];
-            direccion=datos[i].split(".");
+            direccion=datos[i].split("-");
             for (int j = 0; j < 4; j++) {
                 aux=Integer.parseInt(direccion[j]);
                 gateway[j]=aux.byteValue();
@@ -166,16 +172,24 @@ public class ServidorDHCP {
             subred.getGateway().add(gateway);
         }
         //dns
-        int ndns=Integer.parseInt(datos[5+ngateways]);
-        for (int i = 6+ngateways; i < 6+ngateways+ndns; i++) {
+        int ndns=Integer.parseInt(datos[6+ngateways]);
+        for (int i = 7+ngateways; i < 6+ngateways+ndns; i++) {
             byte[] dns=new byte[4];
-            direccion=datos[i].split(".");
+            direccion=datos[i].split("-");
             for (int j = 0; j < 4; j++) {
                 aux=Integer.parseInt(direccion[j]);
                 dns[j]=aux.byteValue();
             }
-            subred.getGateway().add(dns);
+            subred.getDns().add(dns);
         }
+        this.subredes.add(subred);
+        System.out.println("** "+(subred.getDireccionIp()[1]&0xFF));
+        System.out.println("*** "+subred.getDirecciones().size());
+        System.out.println("**** "+(subred.getDirecciones().get(0).getDireccion()[3]&0xFF));
+        System.out.println("**** "+(subred.getDirecciones().get(1).getDireccion()[3]&0xFF));
+        System.out.println("***** "+subred.getDns().size());
+        System.out.println("***** "+subred.getGateway().size());
+        
     }
 //Para una subred genera las direcciones posibles entre la posicion 0 de direcciones y posicion  1 del arreglo de direcciones. (Primera y ultima direccion)
     private void completarDireccionesIp(Subred subred) {
@@ -183,7 +197,7 @@ public class ServidorDHCP {
         boolean fin=false;
         direccion=subred.getDirecciones().get(0).getDireccion();
         int ndir=1;
-        while(!fin){
+        do{
             DireccionIP ip=new DireccionIP();
             direccion[0]+=1;
             if((direccion[0]& 0xFF)==0){
@@ -196,9 +210,13 @@ public class ServidorDHCP {
                 direccion[3]+=1;
             }
             fin=false;
+            System.out.println("a  "+(direccion[3]&0xFF)+" "+(subred.getDirecciones().get(subred.getDirecciones().size()-1).getDireccion()[3]& 0xFF));
             for (int i = 0; i < 4; i++) {
-                if(direccion[i]!=subred.getDirecciones().get(subred.getDirecciones().size()).getDireccion()[i])
-                    fin=true;
+                fin=true;
+                if((direccion[i]& 0xFF)!=(subred.getDirecciones().get(subred.getDirecciones().size()-1).getDireccion()[i]& 0xFF)){
+                    fin=false;
+                    break;
+                }
             }
             if(fin)
                 break;
@@ -209,6 +227,6 @@ public class ServidorDHCP {
             }
             subred.getDirecciones().add(ndir, ip);
             ndir++;
-        }
+        }while(!fin);
     }
 }
