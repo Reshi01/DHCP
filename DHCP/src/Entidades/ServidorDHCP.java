@@ -184,6 +184,7 @@ public class ServidorDHCP {
         if(cliente.getArrendamientoActual()!=null && cliente.getArrendamientoActual().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoActual().getDireccionIp())==null){
             direccionAsignada=true;
             paqueteOffer.setSiaddr(cliente.getArrendamientoActual().getDireccionIp().getDireccion());
+            //paqueteOffer.setIpAddressLeaseTime(cliente.getArrendamientoActual().getDireccionIp().getTiempoArrendamiento());
         }else if(cliente.getArrendamientoAnterior()!=null&& cliente.getArrendamientoAnterior().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoAnterior().getDireccionIp())==null){
             direccionAsignada=true;
             paqueteOffer.setSiaddr(cliente.getArrendamientoAnterior().getDireccionIp().getDireccion());
@@ -233,6 +234,11 @@ public class ServidorDHCP {
         paqueteOffer.setFlags(paqueteDiscover.getFlags());
         paqueteOffer.setGiaddr(paqueteDiscover.getGiaddr());
         paqueteOffer.setChaddr(paqueteDiscover.getChaddr());
+        paqueteOffer.setSname(null);
+        paqueteOffer.setFile(paqueteDiscover.getFile());
+        if(paqueteDiscover.getIpAddressLeaseTime()!=null){
+            paqueteOffer.setIpAddressLeaseTime(paqueteDiscover.getIpAddressLeaseTime());
+        }
         
         return paqueteOffer;
     }
