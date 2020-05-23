@@ -201,15 +201,18 @@ public class ServidorDHCP {
     }
     
     public PaqueteDHCP crearPaqueteDHCPOffer(Cliente cliente, PaqueteDHCP paqueteDiscover){
-        boolean direccionAsignada=false, igual=true;
+        boolean direccionAsignada=false, igual=true, nuevo=true;
         PaqueteDHCP paqueteOffer=new PaqueteDHCP();
         Arrendamiento nuevoArrendamiento=new Arrendamiento();
         if(cliente.getArrendamientoActual()!=null && cliente.getArrendamientoActual().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoActual().getDireccionIp())==null){
             direccionAsignada=true;
+            nuevo=false;
             paqueteOffer.setSiaddr(cliente.getArrendamientoActual().getDireccionIp().getDireccion());
+            paqueteOffer.setIpAddressLeaseTime(intToByteArray(cliente.getArrendamientoActual().getTiempoArrendamiento()));
         }else if(cliente.getArrendamientoAnterior()!=null&& cliente.getArrendamientoAnterior().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoAnterior().getDireccionIp())==null){
             direccionAsignada=true;
             paqueteOffer.setSiaddr(cliente.getArrendamientoAnterior().getDireccionIp().getDireccion());
+            nuevoArrendamiento.setDireccionIp(cliente.getArrendamientoAnterior().getDireccionIp());
         }else if(paqueteDiscover.getRequestedIpAddress()!=null && perteneceSubred(paqueteDiscover.getRequestedIpAddress(),cliente.getSubred())){
             byte[] aux=paqueteDiscover.getRequestedIpAddress();
             for (DireccionIP direcciones : cliente.getSubred().getDirecciones()) {
@@ -222,6 +225,7 @@ public class ServidorDHCP {
                 if(igual && direcciones.isDisponible()){
                     direccionAsignada=true;
                     paqueteOffer.setSiaddr(paqueteDiscover.getRequestedIpAddress());
+                    nuevoArrendamiento.setDireccionIp(direcciones);
                     break;
                 }
             }
@@ -230,6 +234,7 @@ public class ServidorDHCP {
                 if(direcciones.isDisponible()){
                     direccionAsignada=true;
                     paqueteOffer.setSiaddr(direcciones.getDireccion());
+                    nuevoArrendamiento.setDireccionIp(direcciones);
                 }
             }
         }
@@ -256,7 +261,28 @@ public class ServidorDHCP {
         paqueteOffer.setFlags(paqueteDiscover.getFlags());
         paqueteOffer.setGiaddr(paqueteDiscover.getGiaddr());
         paqueteOffer.setChaddr(paqueteDiscover.getChaddr());
-        
+        paqueteOffer.setSname(null);
+        paqueteOffer.setFile(paqueteDiscover.getFile());
+        if(paqueteDiscover.getIpAddressLeaseTime()!=null){
+            paqueteOffer.setIpAddressLeaseTime(paqueteDiscover.getIpAddressLeaseTime());
+            nuevoArrendamiento.setTiempoArrendamiento(byteArrayToInt(paqueteDiscover.getIpAddressLeaseTime()));
+        }else if(paqueteOffer.getIpAddressLeaseTime()==null){
+            paqueteOffer.setIpAddressLeaseTime(intToByteArray(cliente.getSubred().getTiempoArrendamiento()));
+            nuevoArrendamiento.setTiempoArrendamiento(cliente.getSubred().getTiempoArrendamiento());
+        }
+        paqueteOffer.setMessageType((byte)2);
+        paqueteOffer.setSubnetMask(cliente.getSubred().getMascaraRed());
+        paqueteOffer.setDns(cliente.getSubred().getDns());
+        paqueteOffer.setRouter(cliente.getSubred().getGateway());
+        if(nuevo){
+            nuevoArrendamiento.setVigente(false);
+            nuevoArrendamiento.setCliente(cliente);
+            nuevoArrendamiento.setMascara(cliente.getSubred().getMascaraRed());
+            nuevoArrendamiento.setDns(cliente.getSubred().getDns());
+            nuevoArrendamiento.setGateway(cliente.getSubred().getGateway());
+            cliente.setArrendamientoAnterior(cliente.getArrendamientoActual());
+            cliente.setArrendamientoActual(nuevoArrendamiento);
+        }
         return paqueteOffer;
     }
     
@@ -318,7 +344,7 @@ public class ServidorDHCP {
         }
         DireccionIP direccionIp1=new DireccionIP();
         direccionIp1.setDireccion(octetos2);
-        direccionIp1.setTiempoArrendamiento(Integer.parseInt(datos[4]));
+        subred.setTiempoArrendamiento(Integer.parseInt(datos[4]));
         direccionIp1.setDisponible(true);
         subred.getDirecciones().add(0, direccionIp1);
         //ultima direccion
@@ -330,7 +356,6 @@ public class ServidorDHCP {
         }
         DireccionIP direccionIp2=new DireccionIP();
         direccionIp2.setDireccion(octetos3);
-        direccionIp2.setTiempoArrendamiento(Integer.parseInt(datos[4]));
         direccionIp2.setDisponible(true);
         subred.getDirecciones().add(1,direccionIp2);
         //gateways
@@ -406,11 +431,22 @@ public class ServidorDHCP {
                     direccion[i]=aux[i];
                 }
                 ip.setDisponible(true);
-                ip.setTiempoArrendamiento(subred.getDirecciones().get(0).getTiempoArrendamiento());
                 ip.setDireccion(direccion);
                 subred.getDirecciones().add(ndir, ip);
                 ndir++;
             }
         }while(!fin);
     }  
+
+    private byte[] intToByteArray(int data) {
+        return new byte[] {
+            (byte)((data >> 24) & 0xff),
+            (byte)((data >> 16) & 0xff),
+            (byte)((data >> 8) & 0xff),
+            (byte)((data >> 0) & 0xff)};
+    }
+
+    private int byteArrayToInt(byte[] ipAddressLeaseTime) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }
