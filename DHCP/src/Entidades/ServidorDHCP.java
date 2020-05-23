@@ -65,27 +65,39 @@ public class ServidorDHCP {
                     System.out.println(i);
                 }
                 //FIN IMPRESIONES
-                
+
                 //Se revisa que sea BOOTREQUEST
-                if(Byte.toUnsignedInt(pDHCP.getOp()) == 1){
+                if (Byte.toUnsignedInt(pDHCP.getOp()) == 1) {
                     //Se obtiene el cliente que envió el mensaje
                     Cliente cliente = obtenerCliente(pDHCP);
                     //Se continua si el cliente está en una subred manejada por el servidor
-                    if(cliente != null){
+                    if (cliente != null) {
                         int tipoM = Byte.toUnsignedInt(pDHCP.getMessageType());
-                        if(tipoM == 1){ //Si el mensaje recibido es DHCPDISCOVER
-                            PaqueteDHCP respuesta = crearPaqueteDHCPOffer(cliente, pDHCP);
-                            DatagramPacket pRespuesta = new DatagramPacket(respuesta, respuesta.length, );
-                        }
-                        else if(tipoM == 3){ //Si el mensaje recibido es DHCPREQUEST
-                            
-                        }
-                        else if(tipoM == 7){ //Si el mensaje recibido es DHCPRELEASE
-                            
+                        if (tipoM == 1) { //Si el mensaje recibido es DHCPDISCOVER
+                            PaqueteDHCP rDHCP = crearPaqueteDHCPOffer(cliente, pDHCP);
+                            byte[] respuesta = rDHCP.construirPaquete();
+                            DatagramPacket pRespuesta;
+                            if ((Byte.toUnsignedInt(pDHCP.getGiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[3]) == 0)) {
+                                if ((Byte.toUnsignedInt(pDHCP.getCiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[3]) == 0)) {
+                                    //Si giaddr y ciaddr son cero, se envía el mensaje a la dirección broadcast
+                                    byte[] broadcast = {(byte) '\uffff', (byte) '\uffff', (byte) '\uffff', (byte) '\uffff'};
+                                    pRespuesta = new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(broadcast), 68);
+                                } else { //Si giaddr es cero y ciaddr no, se envía el mensaje a la dirección en ciaddr
+                                    pRespuesta = new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getCiaddr()), 68);
+                                }
+                            } else { //Si giaddr no es cero, se envía el mensaje al puerto de servidor DHCP de la dirección en ese campo
+                                pRespuesta = new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getGiaddr()), 67);
+                            }
+                            socket.send(pRespuesta); //Se envía el paquete
+
+                        } else if (tipoM == 3) { //Si el mensaje recibido es DHCPREQUEST
+
+                        } else if (tipoM == 7) { //Si el mensaje recibido es DHCPRELEASE
+
                         }
                     }
                 }
-                
+
             }
 
         } catch (UnknownHostException ex) {
@@ -122,17 +134,16 @@ public class ServidorDHCP {
         //Recorrer todas las subredes
         for (Subred s : subredes) {
             //Se revisa si pertenece a esa subred
-            if(perteneceSubred(dir, s)){
+            if (perteneceSubred(dir, s)) {
                 int numSR = subredes.indexOf(s);
                 Pair<Integer, byte[]> llave = new Pair<Integer, byte[]>(numSR, mac);
                 Cliente cliente = clientes.get(llave);
                 //Si el cliente no existe, se crea
-                if(cliente == null){
+                if (cliente == null) {
                     Cliente nuevoCliente = new Cliente(mac, s);
                     clientes.put(llave, nuevoCliente);
                     return nuevoCliente;
-                }
-                else{
+                } else {
                     return cliente;
                 }
             }
@@ -199,82 +210,82 @@ public class ServidorDHCP {
     public void setOfertas(Map<DireccionIP, Arrendamiento> ofertas) {
         this.ofertas = ofertas;
     }
-    
-    public PaqueteDHCP crearPaqueteDHCPOffer(Cliente cliente, PaqueteDHCP paqueteDiscover){
-        boolean direccionAsignada=false, igual=true, nuevo=true;
-        PaqueteDHCP paqueteOffer=new PaqueteDHCP();
-        Arrendamiento nuevoArrendamiento=new Arrendamiento();
-        if(cliente.getArrendamientoActual()!=null && cliente.getArrendamientoActual().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoActual().getDireccionIp())==null){
-            direccionAsignada=true;
-            nuevo=false;
+
+    public PaqueteDHCP crearPaqueteDHCPOffer(Cliente cliente, PaqueteDHCP paqueteDiscover) {
+        boolean direccionAsignada = false, igual = true, nuevo = true;
+        PaqueteDHCP paqueteOffer = new PaqueteDHCP();
+        Arrendamiento nuevoArrendamiento = new Arrendamiento();
+        if (cliente.getArrendamientoActual() != null && cliente.getArrendamientoActual().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoActual().getDireccionIp()) == null) {
+            direccionAsignada = true;
+            nuevo = false;
             paqueteOffer.setSiaddr(cliente.getArrendamientoActual().getDireccionIp().getDireccion());
             paqueteOffer.setIpAddressLeaseTime(intToByteArray(cliente.getArrendamientoActual().getTiempoArrendamiento()));
-        }else if(cliente.getArrendamientoAnterior()!=null&& cliente.getArrendamientoAnterior().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoAnterior().getDireccionIp())==null){
-            direccionAsignada=true;
+        } else if (cliente.getArrendamientoAnterior() != null && cliente.getArrendamientoAnterior().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoAnterior().getDireccionIp()) == null) {
+            direccionAsignada = true;
             paqueteOffer.setSiaddr(cliente.getArrendamientoAnterior().getDireccionIp().getDireccion());
             nuevoArrendamiento.setDireccionIp(cliente.getArrendamientoAnterior().getDireccionIp());
-        }else if(paqueteDiscover.getRequestedIpAddress()!=null && perteneceSubred(paqueteDiscover.getRequestedIpAddress(),cliente.getSubred())){
-            byte[] aux=paqueteDiscover.getRequestedIpAddress();
+        } else if (paqueteDiscover.getRequestedIpAddress() != null && perteneceSubred(paqueteDiscover.getRequestedIpAddress(), cliente.getSubred())) {
+            byte[] aux = paqueteDiscover.getRequestedIpAddress();
             for (DireccionIP direcciones : cliente.getSubred().getDirecciones()) {
-                igual=true;
+                igual = true;
                 for (int i = 0; i < 4; i++) {
-                    if(aux[i]!=direcciones.getDireccion()[i]){
-                        igual=false;
+                    if (aux[i] != direcciones.getDireccion()[i]) {
+                        igual = false;
                     }
                 }
-                if(igual && direcciones.isDisponible()){
-                    direccionAsignada=true;
+                if (igual && direcciones.isDisponible()) {
+                    direccionAsignada = true;
                     paqueteOffer.setSiaddr(paqueteDiscover.getRequestedIpAddress());
                     nuevoArrendamiento.setDireccionIp(direcciones);
                     break;
                 }
             }
-        }else{
+        } else {
             for (DireccionIP direcciones : cliente.getSubred().getDirecciones()) {
-                if(direcciones.isDisponible()){
-                    direccionAsignada=true;
+                if (direcciones.isDisponible()) {
+                    direccionAsignada = true;
                     paqueteOffer.setSiaddr(direcciones.getDireccion());
                     nuevoArrendamiento.setDireccionIp(direcciones);
                 }
             }
         }
-        if(!direccionAsignada){
-            System.out.println("No se encontro una direccion disponible: "+(cliente.getMac()[0]&0xFF)+"."+(cliente.getMac()[1]&0xFF)+"."+(cliente.getMac()[2]&0xFF)+"."+(cliente.getMac()[3]&0xFF)+"."+(cliente.getMac()[4]&0xFF)+"."+(cliente.getMac()[5]&0xFF));
-            System.out.println("En la subred: "+(cliente.getSubred().getDireccionIp()[0]&0xFF)+"."+(cliente.getSubred().getDireccionIp()[1]&0xFF)+"."+(cliente.getSubred().getDireccionIp()[2]&0xFF)+"."+(cliente.getSubred().getDireccionIp()[3]&0xFF));
+        if (!direccionAsignada) {
+            System.out.println("No se encontro una direccion disponible: " + (cliente.getMac()[0] & 0xFF) + "." + (cliente.getMac()[1] & 0xFF) + "." + (cliente.getMac()[2] & 0xFF) + "." + (cliente.getMac()[3] & 0xFF) + "." + (cliente.getMac()[4] & 0xFF) + "." + (cliente.getMac()[5] & 0xFF));
+            System.out.println("En la subred: " + (cliente.getSubred().getDireccionIp()[0] & 0xFF) + "." + (cliente.getSubred().getDireccionIp()[1] & 0xFF) + "." + (cliente.getSubred().getDireccionIp()[2] & 0xFF) + "." + (cliente.getSubred().getDireccionIp()[3] & 0xFF));
             return null;
         }
-        paqueteOffer.setOp((byte)2);
+        paqueteOffer.setOp((byte) 2);
         paqueteOffer.setHtype(paqueteDiscover.getHtype());
         paqueteOffer.setHlen(paqueteDiscover.getHlen());
-        paqueteOffer.setHops((byte)0);
+        paqueteOffer.setHops((byte) 0);
         paqueteOffer.setXid(paqueteDiscover.getXid());
-        byte[] aux=new byte[2];
-        aux[0]=0;
-        aux[1]=0;
+        byte[] aux = new byte[2];
+        aux[0] = 0;
+        aux[1] = 0;
         paqueteOffer.setSecs(aux);
-        byte[] aux2=new byte[4];
-        aux[0]=0;
-        aux[1]=0;
-        aux[2]=0;
-        aux[3]=0;
+        byte[] aux2 = new byte[4];
+        aux[0] = 0;
+        aux[1] = 0;
+        aux[2] = 0;
+        aux[3] = 0;
         paqueteOffer.setCiaddr(aux2);
         paqueteOffer.setFlags(paqueteDiscover.getFlags());
         paqueteOffer.setGiaddr(paqueteDiscover.getGiaddr());
         paqueteOffer.setChaddr(paqueteDiscover.getChaddr());
         paqueteOffer.setSname(null);
         paqueteOffer.setFile(paqueteDiscover.getFile());
-        if(paqueteDiscover.getIpAddressLeaseTime()!=null){
+        if (paqueteDiscover.getIpAddressLeaseTime() != null) {
             paqueteOffer.setIpAddressLeaseTime(paqueteDiscover.getIpAddressLeaseTime());
             nuevoArrendamiento.setTiempoArrendamiento(byteArrayToInt(paqueteDiscover.getIpAddressLeaseTime()));
-        }else if(paqueteOffer.getIpAddressLeaseTime()==null){
+        } else if (paqueteOffer.getIpAddressLeaseTime() == null) {
             paqueteOffer.setIpAddressLeaseTime(intToByteArray(cliente.getSubred().getTiempoArrendamiento()));
             nuevoArrendamiento.setTiempoArrendamiento(cliente.getSubred().getTiempoArrendamiento());
         }
-        paqueteOffer.setMessageType((byte)2);
+        paqueteOffer.setMessageType((byte) 2);
         paqueteOffer.setSubnetMask(cliente.getSubred().getMascaraRed());
         paqueteOffer.setDns(cliente.getSubred().getDns());
         paqueteOffer.setRouter(cliente.getSubred().getGateway());
-        if(nuevo){
+        if (nuevo) {
             nuevoArrendamiento.setVigente(false);
             nuevoArrendamiento.setCliente(cliente);
             nuevoArrendamiento.setMascara(cliente.getSubred().getMascaraRed());
@@ -285,28 +296,29 @@ public class ServidorDHCP {
         }
         return paqueteOffer;
     }
-    
+
     public boolean cofigurar() throws FileNotFoundException, IOException {
-        JFileChooser selector=new JFileChooser();
+        JFileChooser selector = new JFileChooser();
         JOptionPane.showMessageDialog(null, "Indique archivo de configuracion", "Indique archivo de configuracion", JOptionPane.INFORMATION_MESSAGE);
         selector.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-        int resultado=selector.showOpenDialog(null);
-        if(resultado==JFileChooser.ERROR_OPTION)
+        int resultado = selector.showOpenDialog(null);
+        if (resultado == JFileChooser.ERROR_OPTION) {
             return false;
-        File archivo=selector.getSelectedFile();
-        if(archivo==null || archivo.getName().equals("")){
+        }
+        File archivo = selector.getSelectedFile();
+        if (archivo == null || archivo.getName().equals("")) {
             JOptionPane.showMessageDialog(null, "Nombre de archivo inválido", "Nombre de archivo inválido", JOptionPane.ERROR_MESSAGE);
             return false;
         }
         String[] datos;
         String aux;
-        FileReader file=new FileReader(archivo);
+        FileReader file = new FileReader(archivo);
         BufferedReader lector = new BufferedReader(file);
-        while((aux = lector.readLine()) != null) {
+        while ((aux = lector.readLine()) != null) {
             System.out.println(aux);
-            datos=aux.split(" ");
+            datos = aux.split(" ");
             agregarSubred(datos);
-            datos=null;
+            datos = null;
         }
         lector.close();
         for (Subred subred : this.subredes) {
@@ -315,135 +327,137 @@ public class ServidorDHCP {
         return true;
     }
 // a partir del arreglo de datos crea una subred y la anade al arreglo de subredes.
+
     private void agregarSubred(String[] datos) {
-        Subred subred=new Subred();
+        Subred subred = new Subred();
         String[] direccion;
-        byte[] octetos=new byte[4];
+        byte[] octetos = new byte[4];
         Integer aux;
         //Direccion ip de subred
-        direccion=datos[0].split("-");
+        direccion = datos[0].split("-");
         for (int i = 0; i < 4; i++) {
-            aux=Integer.parseInt(direccion[i]);
-            octetos[i]=aux.byteValue();
+            aux = Integer.parseInt(direccion[i]);
+            octetos[i] = aux.byteValue();
         }
         subred.setDireccionIp(octetos);
         //mascara
-        byte[] octetos1=new byte[4];
-        direccion=datos[1].split("-");
+        byte[] octetos1 = new byte[4];
+        direccion = datos[1].split("-");
         for (int i = 0; i < 4; i++) {
-            aux=Integer.parseInt(direccion[i]);
-            octetos1[i]=aux.byteValue();
+            aux = Integer.parseInt(direccion[i]);
+            octetos1[i] = aux.byteValue();
         }
         subred.setMascaraRed(octetos1);
         //primera direccion
-        byte[] octetos2=new byte[4];
-        direccion=datos[2].split("-");
+        byte[] octetos2 = new byte[4];
+        direccion = datos[2].split("-");
         for (int i = 0; i < 4; i++) {
-            aux=Integer.parseInt(direccion[i]);
-            octetos2[i]=aux.byteValue();
+            aux = Integer.parseInt(direccion[i]);
+            octetos2[i] = aux.byteValue();
         }
-        DireccionIP direccionIp1=new DireccionIP();
+        DireccionIP direccionIp1 = new DireccionIP();
         direccionIp1.setDireccion(octetos2);
         subred.setTiempoArrendamiento(Integer.parseInt(datos[4]));
         direccionIp1.setDisponible(true);
         subred.getDirecciones().add(0, direccionIp1);
         //ultima direccion
-        direccion=datos[3].split("-");
-        byte[] octetos3=new byte[4];
+        direccion = datos[3].split("-");
+        byte[] octetos3 = new byte[4];
         for (int i = 0; i < 4; i++) {
-            aux=Integer.parseInt(direccion[i]);
-            octetos3[i]=aux.byteValue();
+            aux = Integer.parseInt(direccion[i]);
+            octetos3[i] = aux.byteValue();
         }
-        DireccionIP direccionIp2=new DireccionIP();
+        DireccionIP direccionIp2 = new DireccionIP();
         direccionIp2.setDireccion(octetos3);
         direccionIp2.setDisponible(true);
-        subred.getDirecciones().add(1,direccionIp2);
+        subred.getDirecciones().add(1, direccionIp2);
         //gateways
-        int ngateways=Integer.parseInt(datos[5]);
-        for (int i =6; i < 6+ngateways; i++) {
-            byte[] gateway=new byte[4];
-            direccion=datos[i].split("-");
+        int ngateways = Integer.parseInt(datos[5]);
+        for (int i = 6; i < 6 + ngateways; i++) {
+            byte[] gateway = new byte[4];
+            direccion = datos[i].split("-");
             for (int j = 0; j < 4; j++) {
-                aux=Integer.parseInt(direccion[j]);
-                gateway[j]=aux.byteValue();
+                aux = Integer.parseInt(direccion[j]);
+                gateway[j] = aux.byteValue();
             }
             subred.getGateway().add(gateway);
         }
         //dns
-        int ndns=Integer.parseInt(datos[6+ngateways]);
-        for (int i = 7+ngateways; i < 7+ngateways+ndns; i++) {
-            byte[] dns=new byte[4];
-            direccion=datos[i].split("-");
+        int ndns = Integer.parseInt(datos[6 + ngateways]);
+        for (int i = 7 + ngateways; i < 7 + ngateways + ndns; i++) {
+            byte[] dns = new byte[4];
+            direccion = datos[i].split("-");
             for (int j = 0; j < 4; j++) {
-                aux=Integer.parseInt(direccion[j]);
-                dns[j]=aux.byteValue();
+                aux = Integer.parseInt(direccion[j]);
+                dns[j] = aux.byteValue();
             }
             subred.getDns().add(dns);
         }
         this.subredes.add(subred);
-        
+
     }
 //Para una subred genera las direcciones posibles entre la posicion 0 de direcciones y posicion  1 del arreglo de direcciones. (Primera y ultima direccion)
+
     private void completarDireccionesIp(Subred subred) {
-        byte[] ultima=subred.getDirecciones().get(1).getDireccion();
-        byte[] aux=new byte[4];
-        boolean fin=false;
+        byte[] ultima = subred.getDirecciones().get(1).getDireccion();
+        byte[] aux = new byte[4];
+        boolean fin = false;
         for (int i = 0; i < 4; i++) {
-            aux[i]=subred.getDirecciones().get(0).getDireccion()[i];
+            aux[i] = subred.getDirecciones().get(0).getDireccion()[i];
         }
-        int ndir=1;
-        do{
-            DireccionIP ip=new DireccionIP();
-            if((aux[3]&0xFF)==255){
-                aux[3]=0;
-                if((aux[2]&0xFF)==255){
-                    aux[2]=0;
-                    if((aux[1]&0xFF)==255){
-                        aux[1]=0;
-                        if((aux[0]&0xFF)==255){
-                            aux[0]=0;
-                        }else{
-                            aux[0]+=1;
+        int ndir = 1;
+        do {
+            DireccionIP ip = new DireccionIP();
+            if ((aux[3] & 0xFF) == 255) {
+                aux[3] = 0;
+                if ((aux[2] & 0xFF) == 255) {
+                    aux[2] = 0;
+                    if ((aux[1] & 0xFF) == 255) {
+                        aux[1] = 0;
+                        if ((aux[0] & 0xFF) == 255) {
+                            aux[0] = 0;
+                        } else {
+                            aux[0] += 1;
                         }
-                    }else{
-                        aux[1]+=1;
+                    } else {
+                        aux[1] += 1;
                     }
-                }else{
-                    aux[2]+=1;
+                } else {
+                    aux[2] += 1;
                 }
-            }else{
-                aux[3]+=1;
+            } else {
+                aux[3] += 1;
             }
-            
-            fin=false;
+
+            fin = false;
             for (int i = 0; i < 4; i++) {
-                fin=true;
-                if((aux[i]& 0xFF)!=(ultima[i]& 0xFF)){
-                    fin=false;
+                fin = true;
+                if ((aux[i] & 0xFF) != (ultima[i] & 0xFF)) {
+                    fin = false;
                     break;
                 }
             }
-            if(fin)
+            if (fin) {
                 break;
-            else{
-                byte[] direccion=new byte[4];
+            } else {
+                byte[] direccion = new byte[4];
                 for (int i = 0; i < 4; i++) {
-                    direccion[i]=aux[i];
+                    direccion[i] = aux[i];
                 }
                 ip.setDisponible(true);
                 ip.setDireccion(direccion);
                 subred.getDirecciones().add(ndir, ip);
                 ndir++;
             }
-        }while(!fin);
-    }  
+        } while (!fin);
+    }
 
     private byte[] intToByteArray(int data) {
-        return new byte[] {
-            (byte)((data >> 24) & 0xff),
-            (byte)((data >> 16) & 0xff),
-            (byte)((data >> 8) & 0xff),
-            (byte)((data >> 0) & 0xff)};
+        return new byte[]{
+            (byte) ((data >> 24) & 0xff),
+            (byte) ((data >> 16) & 0xff),
+            (byte) ((data >> 8) & 0xff),
+            (byte) ((data >> 0) & 0xff)};
     }
 
     private int byteArrayToInt(byte[] ipAddressLeaseTime) {
