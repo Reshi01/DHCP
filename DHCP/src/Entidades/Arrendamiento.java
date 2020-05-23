@@ -14,10 +14,11 @@ import java.util.ArrayList;
  */
 public class Arrendamiento {
     private boolean vigente;
+    private int tiempoArrendamiento;
     private DireccionIP direccionIp;
     private Cliente cliente;
     private LocalDateTime horaInicio;
-    private LocalDateTime horaRenovacion;
+    private LocalDateTime horaRevocacion;
     private byte[] mascara;
     //parametrod de configuracion
     private ArrayList<byte[]> gateway;
@@ -62,12 +63,12 @@ public class Arrendamiento {
         this.horaInicio = horaInicio;
     }
 
-    public LocalDateTime getHoraRenovacion() {
-        return horaRenovacion;
+    public LocalDateTime getHoraRevocacion() {
+        return horaRevocacion;
     }
 
-    public void setHoraRenovacion(LocalDateTime horaRenovacion) {
-        this.horaRenovacion = horaRenovacion;
+    public void setHoraRenovacion(LocalDateTime horaRevocacion) {
+        this.horaRevocacion = horaRevocacion;
     }
 
     public byte[] getMascara() {
@@ -93,6 +94,15 @@ public class Arrendamiento {
     public void setDns(ArrayList<byte[]> dns) {
         this.dns = dns;
     }
+
+    public int getTiempoArrendamiento() {
+        return tiempoArrendamiento;
+    }
+
+    public void setTiempoArrendamiento(int tiempoArrendamiento) {
+        this.tiempoArrendamiento = tiempoArrendamiento;
+    }
+    
     
     
 }

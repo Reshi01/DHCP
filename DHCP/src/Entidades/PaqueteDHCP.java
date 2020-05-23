@@ -98,7 +98,11 @@ public class PaqueteDHCP {
             }
             tam = Byte.toUnsignedInt(bytes[i]);
             i++;
-            if(codigo == 55){ //Opción Parameter Request List
+            if(codigo == 53){ //Opción DHCP Message Type
+                messageType = bytes[i];
+                i++;
+            }
+            else if(codigo == 55){ //Opción Parameter Request List
                 parameterRequestList = new ArrayList<>();
                 for(int j = 0; j < tam; j++){
                     parameterRequestList.add(Byte.toUnsignedInt(bytes[i]));
