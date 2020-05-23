@@ -180,8 +180,9 @@ public class ServidorDHCP {
     public void crearPaqueteDHCPOffer(Cliente cliente, PaqueteDHCP paquete){
         boolean direccionAsignada=false;
         PaqueteDHCP paqueteOffer=new PaqueteDHCP();
-        if(cliente.getArrendamientoActual()!=null){
+        if(cliente.getArrendamientoActual()!=null && cliente.getArrendamientoActual().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoActual().getDireccionIp())==null){
             direccionAsignada=true;
+            paqueteOffer.setSiaddr(cliente.getArrendamientoActual().getDireccionIp().getDireccion());
         }else if(cliente.getArrendamientoAnterior()!=null){
             direccionAsignada=true;
         }else if(paquete.getRequestedIpAddress()!=null && perteneceSubred(paquete.getRequestedIpAddress(),cliente.getSubred())){
@@ -199,6 +200,16 @@ public class ServidorDHCP {
         paqueteOffer.setHlen(paquete.getHlen());
         paqueteOffer.setHops((byte)0);
         paqueteOffer.setXid(paquete.getXid());
+        byte[] aux=new byte[2];
+        aux[0]=0;
+        aux[1]=0;
+        paqueteOffer.setSecs(aux);
+        byte[] aux2=new byte[4];
+        aux[0]=0;
+        aux[1]=0;
+        aux[2]=0;
+        aux[3]=0;
+        paqueteOffer.setCiaddr(aux2);
         
     }
     
