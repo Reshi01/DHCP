@@ -12,11 +12,16 @@ package Entidades;
 public class Cliente {
     private byte[] mac;
     private Subred subred;
-    private Arrendamiento arrendmainetoActual;
+    private Arrendamiento arrendamientoActual;
     private Arrendamiento arrendamientoAnterior;
 
     public Cliente() {
         mac=new byte[6];
+    }
+    
+    public Cliente(byte[] dMac, Subred subR){
+        mac = dMac;
+        subred = subR;
     }
 
     public byte[] getMac() {
@@ -35,12 +40,12 @@ public class Cliente {
         this.subred = subred;
     }
     
-    public Arrendamiento getArrendmainetoActual() {
-        return arrendmainetoActual;
+    public Arrendamiento getArrendamientoActual() {
+        return arrendamientoActual;
     }
 
-    public void setArrendmainetoActual(Arrendamiento arrendmainetoActual) {
-        this.arrendmainetoActual = arrendmainetoActual;
+    public void setArrendamientoActual(Arrendamiento arrendmainetoActual) {
+        this.arrendamientoActual = arrendmainetoActual;
     }
 
     public Arrendamiento getArrendamientoAnterior() {

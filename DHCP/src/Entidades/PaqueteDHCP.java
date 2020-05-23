@@ -27,13 +27,17 @@ public class PaqueteDHCP {
     private byte[] sname;
     private byte[] file;
     private byte messageType;
-    private ArrayList<Integer> parameterRequestList;
-    private byte[] requestedIpAddress;
-    private byte[] ipAddressLeaseTime;
-    private byte[] serverIdentifier;
-    private byte[] subnetMask;
-    private ArrayList<byte[]> dns;
-    private ArrayList<byte[]> router;
+    private ArrayList<Integer> parameterRequestList = null;
+    private byte[] requestedIpAddress = null;
+    private byte[] ipAddressLeaseTime = null;
+    private byte[] serverIdentifier = null;
+    private byte[] subnetMask = null;
+    private ArrayList<byte[]> dns = null;
+    private ArrayList<byte[]> router = null;
+
+    public PaqueteDHCP(){
+        
+    }
     
     public PaqueteDHCP(byte[] bytes) {
         if(bytes.length < 300){ //El tamaño mínimo del mensaje es de 300 bytes
@@ -339,8 +343,4 @@ public class PaqueteDHCP {
     public void setRouter(ArrayList<byte[]> router) {
         this.router = router;
     }
-//quitar despues del pull
-    public PaqueteDHCP() {
-    }
-    
 }
