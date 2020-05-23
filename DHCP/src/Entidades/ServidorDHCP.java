@@ -58,11 +58,33 @@ public class ServidorDHCP {
                 //IMPRESIONES PARA DEPURAR
                 System.out.println("Mensaje Recibido:");
                 System.out.println("op:" + Byte.toUnsignedInt(pDHCP.getOp()));
+                System.out.println("Message Type: " + Byte.toUnsignedInt(pDHCP.getMessageType()));
                 System.out.println("Requested IP Address: " + Byte.toUnsignedInt(pDHCP.getRequestedIpAddress()[0]) + "." + Byte.toUnsignedInt(pDHCP.getRequestedIpAddress()[1]) + "." + Byte.toUnsignedInt(pDHCP.getRequestedIpAddress()[2]) + "." + Byte.toUnsignedInt(pDHCP.getRequestedIpAddress()[3]));
                 System.out.println("Parameter Request List:");
                 for (Integer i : pDHCP.getParameterRequestList()) {
                     System.out.println(i);
                 }
+                //FIN IMPRESIONES
+                
+                //Se revisa que sea BOOTREQUEST
+                if(Byte.toUnsignedInt(pDHCP.getOp()) == 1){
+                    //Se obtiene el cliente que envió el mensaje
+                    Cliente cliente = obtenerCliente(pDHCP);
+                    //Se continua si el cliente está en una subred manejada por el servidor
+                    if(cliente != null){
+                        int tipoM = Byte.toUnsignedInt(pDHCP.getMessageType());
+                        if(tipoM == 1){ //Si el mensaje recibido es DHCPDISCOVER
+                            //PaqueteDHCP respuesta = crearPaqueteDHCPOffer(cliente, pDHCP);
+                        }
+                        else if(tipoM == 3){ //Si el mensaje recibido es DHCPREQUEST
+                            
+                        }
+                        else if(tipoM == 7){ //Si el mensaje recibido es DHCPRELEASE
+                            
+                        }
+                    }
+                }
+                
             }
 
         } catch (UnknownHostException ex) {

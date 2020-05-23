@@ -27,8 +27,7 @@ public class DHCP {
             System.out.println("Error al configurar servidor");
         }
         
-        DatagramSocket socket= new DatagramSocket(67,InetAddress.getByName("localhost"));
-        DatagramPacket paquete=null;
+        servidor.correrServidor();
     }
     
 }
