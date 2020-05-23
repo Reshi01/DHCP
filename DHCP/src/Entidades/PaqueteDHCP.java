@@ -153,7 +153,10 @@ public class PaqueteDHCP {
                     dns.add(dir);
                 }
             }
-            //Falta considerar la opción Option Overload 
+            else{
+                i += tam;
+            }
+            //Falta considerar la opción Option Overload
         }
     }
     
