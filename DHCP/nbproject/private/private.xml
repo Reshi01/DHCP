@@ -3,9 +3,19 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
+<<<<<<< HEAD
             <file>file:/D:/Documentos/Universidad/Sexto%20Semestre/DHCP/DHCP/src/dhcp/DHCP.java</file>
             <file>file:/D:/Documentos/Universidad/Sexto%20Semestre/DHCP/DHCP/src/Entidades/ServidorDHCP.java</file>
             <file>file:/D:/Documentos/Universidad/Sexto%20Semestre/DHCP/DHCP/src/Entidades/PaqueteDHCP.java</file>
+=======
+            <file>file:/C:/Users/Danny/Documents/NetBeansProjects/DHCP/DHCP/src/Entidades/PaqueteDHCP.java</file>
+            <file>file:/C:/Users/Danny/Documents/NetBeansProjects/DHCP/DHCP/src/Entidades/DireccionIP.java</file>
+            <file>file:/C:/Users/Danny/Documents/NetBeansProjects/DHCP/DHCP/src/Entidades/Subred.java</file>
+            <file>file:/C:/Users/Danny/Documents/NetBeansProjects/DHCP/DHCP/src/Entidades/Cliente.java</file>
+            <file>file:/C:/Users/Danny/Documents/NetBeansProjects/DHCP/DHCP/src/dhcp/DHCP.java</file>
+            <file>file:/C:/Users/Danny/Documents/NetBeansProjects/DHCP/DHCP/src/Entidades/ServidorDHCP.java</file>
+            <file>file:/C:/Users/Danny/Documents/NetBeansProjects/DHCP/DHCP/src/Entidades/Arrendamiento.java</file>
+>>>>>>> 3032546fa4e4a837fd442e6f8fda974de7fff832
         </group>
     </open-files>
 </project-private>

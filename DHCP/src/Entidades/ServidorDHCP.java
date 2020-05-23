@@ -176,4 +176,159 @@ public class ServidorDHCP {
     public void setOfertas(Map<DireccionIP, Arrendamiento> ofertas) {
         this.ofertas = ofertas;
     }
+
+    public boolean cofigurar() throws FileNotFoundException, IOException {
+        JFileChooser selector=new JFileChooser();
+        JOptionPane.showMessageDialog(null, "Indique archivo de configuracion", "Indique archivo de configuracion", JOptionPane.INFORMATION_MESSAGE);
+        selector.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        int resultado=selector.showOpenDialog(null);
+        if(resultado==JFileChooser.ERROR_OPTION)
+            return false;
+        File archivo=selector.getSelectedFile();
+        if(archivo==null || archivo.getName().equals("")){
+            JOptionPane.showMessageDialog(null, "Nombre de archivo inválido", "Nombre de archivo inválido", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        String[] datos;
+        String aux;
+        FileReader file=new FileReader(archivo);
+        BufferedReader lector = new BufferedReader(file);
+        while((aux = lector.readLine()) != null) {
+            System.out.println(aux);
+            datos=aux.split(" ");
+            agregarSubred(datos);
+            datos=null;
+        }
+        lector.close();
+        for (Subred subred : this.subredes) {
+            completarDireccionesIp(subred);
+        }
+        return true;
+    }
+// a partir del arreglo de datos crea una subred y la anade al arreglo de subredes.
+    private void agregarSubred(String[] datos) {
+        Subred subred=new Subred();
+        String[] direccion;
+        byte[] octetos=new byte[4];
+        Integer aux;
+        //Direccion ip de subred
+        direccion=datos[0].split("-");
+        for (int i = 0; i < 4; i++) {
+            aux=Integer.parseInt(direccion[i]);
+            octetos[i]=aux.byteValue();
+        }
+        subred.setDireccionIp(octetos);
+        //mascara
+        byte[] octetos1=new byte[4];
+        direccion=datos[1].split("-");
+        for (int i = 0; i < 4; i++) {
+            aux=Integer.parseInt(direccion[i]);
+            octetos1[i]=aux.byteValue();
+        }
+        subred.setMascaraRed(octetos1);
+        //primera direccion
+        byte[] octetos2=new byte[4];
+        direccion=datos[2].split("-");
+        for (int i = 0; i < 4; i++) {
+            aux=Integer.parseInt(direccion[i]);
+            octetos2[i]=aux.byteValue();
+        }
+        DireccionIP direccionIp1=new DireccionIP();
+        direccionIp1.setDireccion(octetos2);
+        direccionIp1.setTiempoArrendamiento(Integer.parseInt(datos[4]));
+        direccionIp1.setDisponible(true);
+        subred.getDirecciones().add(0, direccionIp1);
+        //ultima direccion
+        direccion=datos[3].split("-");
+        byte[] octetos3=new byte[4];
+        for (int i = 0; i < 4; i++) {
+            aux=Integer.parseInt(direccion[i]);
+            octetos3[i]=aux.byteValue();
+        }
+        DireccionIP direccionIp2=new DireccionIP();
+        direccionIp2.setDireccion(octetos3);
+        direccionIp2.setTiempoArrendamiento(Integer.parseInt(datos[4]));
+        direccionIp2.setDisponible(true);
+        subred.getDirecciones().add(1,direccionIp2);
+        //gateways
+        int ngateways=Integer.parseInt(datos[5]);
+        for (int i =6; i < 6+ngateways; i++) {
+            byte[] gateway=new byte[4];
+            direccion=datos[i].split("-");
+            for (int j = 0; j < 4; j++) {
+                aux=Integer.parseInt(direccion[j]);
+                gateway[j]=aux.byteValue();
+            }
+            subred.getGateway().add(gateway);
+        }
+        //dns
+        int ndns=Integer.parseInt(datos[6+ngateways]);
+        for (int i = 7+ngateways; i < 7+ngateways+ndns; i++) {
+            byte[] dns=new byte[4];
+            direccion=datos[i].split("-");
+            for (int j = 0; j < 4; j++) {
+                aux=Integer.parseInt(direccion[j]);
+                dns[j]=aux.byteValue();
+            }
+            subred.getDns().add(dns);
+        }
+        this.subredes.add(subred);
+        
+    }
+//Para una subred genera las direcciones posibles entre la posicion 0 de direcciones y posicion  1 del arreglo de direcciones. (Primera y ultima direccion)
+    private void completarDireccionesIp(Subred subred) {
+        byte[] ultima=subred.getDirecciones().get(1).getDireccion();
+        byte[] aux=new byte[4];
+        boolean fin=false;
+        for (int i = 0; i < 4; i++) {
+            aux[i]=subred.getDirecciones().get(0).getDireccion()[i];
+        }
+        int ndir=1;
+        do{
+            DireccionIP ip=new DireccionIP();
+            if((aux[3]&0xFF)==255){
+                aux[3]=0;
+                if((aux[2]&0xFF)==255){
+                    aux[2]=0;
+                    if((aux[1]&0xFF)==255){
+                        aux[1]=0;
+                        if((aux[0]&0xFF)==255){
+                            aux[0]=0;
+                        }else{
+                            aux[0]+=1;
+                        }
+                    }else{
+                        aux[1]+=1;
+                    }
+                }else{
+                    aux[2]+=1;
+                }
+            }else{
+                aux[3]+=1;
+            }
+            
+            fin=false;
+            for (int i = 0; i < 4; i++) {
+                fin=true;
+                if((aux[i]& 0xFF)!=(ultima[i]& 0xFF)){
+                    fin=false;
+                    break;
+                }
+            }
+            if(fin)
+                break;
+            else{
+                byte[] direccion=new byte[4];
+                for (int i = 0; i < 4; i++) {
+                    direccion[i]=aux[i];
+                }
+                ip.setDisponible(true);
+                ip.setTiempoArrendamiento(subred.getDirecciones().get(0).getTiempoArrendamiento());
+                ip.setDireccion(direccion);
+                subred.getDirecciones().add(ndir, ip);
+                ndir++;
+            }
+        }while(!fin);
+    }
+    
 }

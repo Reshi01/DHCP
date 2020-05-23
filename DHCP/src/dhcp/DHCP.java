@@ -22,23 +22,13 @@ public class DHCP {
      */
     public static void main(String[] args) throws IOException {
         ServidorDHCP servidor=new ServidorDHCP();
-        servidor.correrServidor();
         
-        /*
-        byte i= (byte) 1;
-        i+=1;
-        int j= i & 0xFF;
-        System.out.println(": "+j);
-        */
-//        if(!servidor.cofigurar()){
-//            System.out.println("Error al configurar servidor");
-//        }
-//        
-//        DatagramSocket socket= new DatagramSocket(67,InetAddress.getByName("localhost"));
-//        DatagramPacket paquete=null;
-//        while(true){
-//            socket.receive(paquete);
-//        }
+        if(!servidor.cofigurar()){
+            System.out.println("Error al configurar servidor");
+        }
+        
+        DatagramSocket socket= new DatagramSocket(67,InetAddress.getByName("localhost"));
+        DatagramPacket paquete=null;
     }
     
 }
