@@ -531,11 +531,16 @@ public class ServidorDHCP {
        return ByteBuffer.wrap(data).getInt();
     }
     
-    public void imprimirCambio(){
-        
+    public void imprimirCambio(Cliente cliente, String mensaje){
+        System.out.println("----------------------------------------------------");
+        System.out.println(mensaje+":");
+        System.out.println("    Mac:"+cliente.getMac());
+        System.out.println("    Ip Asignada:"+cliente.getArrendamientoActual().getDireccionIp().getDireccion()[0]+"."+cliente.getArrendamientoActual().getDireccionIp().getDireccion()[1]+"."+cliente.getArrendamientoActual().getDireccionIp().getDireccion()[2]+"."+cliente.getArrendamientoActual().getDireccionIp().getDireccion()[3]);
+        System.out.println("    Hora Inicio:"+cliente.getArrendamientoActual().getHoraInicio());
+        System.out.println("    Hora Revocacion:"+cliente.getArrendamientoActual().getHoraRevocacion());
     }
     
-    public void actualizarLog(){
+    public void actualizarLog(Cliente cliente){
         
     }
 }
