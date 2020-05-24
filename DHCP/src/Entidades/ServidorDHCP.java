@@ -15,6 +15,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -212,18 +213,26 @@ public class ServidorDHCP {
     }
 
     public PaqueteDHCP crearPaqueteDHCPOffer(Cliente cliente, PaqueteDHCP paqueteDiscover) {
+        //direccionAsignada verifica que si se pudo asignar una direccion
+        //igual se usa para buescar una DireccionIP que tenga la direccion requerida por el cliente
+        //nuevo indica si el arrendamiento es nuevo o es un actual
         boolean direccionAsignada = false, igual = true, nuevo = true;
         PaqueteDHCP paqueteOffer = new PaqueteDHCP();
         Arrendamiento nuevoArrendamiento = new Arrendamiento();
+        //Se selecciona una direccion ip para prestar
+        //Si el cliente tiene una dirección actualmente prestada, escoger esa. 
         if (cliente.getArrendamientoActual() != null && cliente.getArrendamientoActual().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoActual().getDireccionIp()) == null) {
             direccionAsignada = true;
             nuevo = false;
-            paqueteOffer.setSiaddr(cliente.getArrendamientoActual().getDireccionIp().getDireccion());
+            paqueteOffer.setYiaddr(cliente.getArrendamientoActual().getDireccionIp().getDireccion());
             paqueteOffer.setIpAddressLeaseTime(intToByteArray(cliente.getArrendamientoActual().getTiempoArrendamiento()));
+            nuevoArrendamiento.setTiempoArrendamiento(cliente.getArrendamientoActual().getTiempoArrendamiento());
+        //En caso contrario, escoger la dirección anterior del cliente, si está disponible
         } else if (cliente.getArrendamientoAnterior() != null && cliente.getArrendamientoAnterior().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoAnterior().getDireccionIp()) == null) {
             direccionAsignada = true;
-            paqueteOffer.setSiaddr(cliente.getArrendamientoAnterior().getDireccionIp().getDireccion());
+            paqueteOffer.setYiaddr(cliente.getArrendamientoAnterior().getDireccionIp().getDireccion());
             nuevoArrendamiento.setDireccionIp(cliente.getArrendamientoAnterior().getDireccionIp());
+        //En caso contrario se escoge la dirección solicitada, si está libre. 
         } else if (paqueteDiscover.getRequestedIpAddress() != null && perteneceSubred(paqueteDiscover.getRequestedIpAddress(), cliente.getSubred())) {
             byte[] aux = paqueteDiscover.getRequestedIpAddress();
             for (DireccionIP direcciones : cliente.getSubred().getDirecciones()) {
@@ -233,27 +242,31 @@ public class ServidorDHCP {
                         igual = false;
                     }
                 }
-                if (igual && direcciones.isDisponible()) {
+                if (igual && direcciones.isDisponible() && !this.ofertas.containsKey(direcciones)) {
                     direccionAsignada = true;
-                    paqueteOffer.setSiaddr(paqueteDiscover.getRequestedIpAddress());
+                    paqueteOffer.setYiaddr(paqueteDiscover.getRequestedIpAddress());
                     nuevoArrendamiento.setDireccionIp(direcciones);
                     break;
                 }
             }
-        } else {
+        } 
+        //En caso contrario, escoger una dirección de la subred apropiada que esté disponible. 
+        if(!direccionAsignada){
             for (DireccionIP direcciones : cliente.getSubred().getDirecciones()) {
                 if (direcciones.isDisponible()) {
                     direccionAsignada = true;
-                    paqueteOffer.setSiaddr(direcciones.getDireccion());
+                    paqueteOffer.setYiaddr(direcciones.getDireccion());
                     nuevoArrendamiento.setDireccionIp(direcciones);
                 }
             }
         }
+        //En caso contrario, imprimir mensaje de error y termina
         if (!direccionAsignada) {
             System.out.println("No se encontro una direccion disponible: " + (cliente.getMac()[0] & 0xFF) + "." + (cliente.getMac()[1] & 0xFF) + "." + (cliente.getMac()[2] & 0xFF) + "." + (cliente.getMac()[3] & 0xFF) + "." + (cliente.getMac()[4] & 0xFF) + "." + (cliente.getMac()[5] & 0xFF));
             System.out.println("En la subred: " + (cliente.getSubred().getDireccionIp()[0] & 0xFF) + "." + (cliente.getSubred().getDireccionIp()[1] & 0xFF) + "." + (cliente.getSubred().getDireccionIp()[2] & 0xFF) + "." + (cliente.getSubred().getDireccionIp()[3] & 0xFF));
             return null;
         }
+        //Se configuran los parametros del mensaje
         paqueteOffer.setOp((byte) 2);
         paqueteOffer.setHtype(paqueteDiscover.getHtype());
         paqueteOffer.setHlen(paqueteDiscover.getHlen());
@@ -269,30 +282,36 @@ public class ServidorDHCP {
         aux[2] = 0;
         aux[3] = 0;
         paqueteOffer.setCiaddr(aux2);
+        paqueteOffer.setSiaddr(this.ip.getAddress());
         paqueteOffer.setFlags(paqueteDiscover.getFlags());
         paqueteOffer.setGiaddr(paqueteDiscover.getGiaddr());
         paqueteOffer.setChaddr(paqueteDiscover.getChaddr());
         paqueteOffer.setSname(null);
         paqueteOffer.setFile(paqueteDiscover.getFile());
+        //Sellecion del tiempo de arrendamiento
+        //Si el cliente pide un tiempo especifico se le permite tenerlo
         if (paqueteDiscover.getIpAddressLeaseTime() != null) {
             paqueteOffer.setIpAddressLeaseTime(paqueteDiscover.getIpAddressLeaseTime());
             nuevoArrendamiento.setTiempoArrendamiento(byteArrayToInt(paqueteDiscover.getIpAddressLeaseTime()));
+        //Si el cliente no pide una direccion, y no tiene arrendamiento actual se le asigna el tiempo por defecto. El arrendamiento actual se revisa en el primer condicional del metodo.
         } else if (paqueteOffer.getIpAddressLeaseTime() == null) {
             paqueteOffer.setIpAddressLeaseTime(intToByteArray(cliente.getSubred().getTiempoArrendamiento()));
             nuevoArrendamiento.setTiempoArrendamiento(cliente.getSubred().getTiempoArrendamiento());
         }
+        //Se configuran las opciones del mensaje
         paqueteOffer.setMessageType((byte) 2);
+        paqueteOffer.setServerIdentiferier(this.ip.getAddress());
         paqueteOffer.setSubnetMask(cliente.getSubred().getMascaraRed());
         paqueteOffer.setDns(cliente.getSubred().getDns());
         paqueteOffer.setRouter(cliente.getSubred().getGateway());
+        //Si el arrendamiento es nuevo se configuran los parametros del arrendamiento y se coloca en lista de ofertas
         if (nuevo) {
             nuevoArrendamiento.setVigente(false);
             nuevoArrendamiento.setCliente(cliente);
             nuevoArrendamiento.setMascara(cliente.getSubred().getMascaraRed());
             nuevoArrendamiento.setDns(cliente.getSubred().getDns());
             nuevoArrendamiento.setGateway(cliente.getSubred().getGateway());
-            cliente.setArrendamientoAnterior(cliente.getArrendamientoActual());
-            cliente.setArrendamientoActual(nuevoArrendamiento);
+            this.ofertas.put(nuevoArrendamiento.getDireccionIp(), nuevoArrendamiento);
         }
         return paqueteOffer;
     }
@@ -300,20 +319,24 @@ public class ServidorDHCP {
     public boolean cofigurar() throws FileNotFoundException, IOException {
         JFileChooser selector = new JFileChooser();
         JOptionPane.showMessageDialog(null, "Indique archivo de configuracion", "Indique archivo de configuracion", JOptionPane.INFORMATION_MESSAGE);
+        //se pide que se indique la direccion del archivo de configuracion
         selector.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
         int resultado = selector.showOpenDialog(null);
         if (resultado == JFileChooser.ERROR_OPTION) {
             return false;
         }
         File archivo = selector.getSelectedFile();
+        //se revisa que la direccion dada sea valida
         if (archivo == null || archivo.getName().equals("")) {
             JOptionPane.showMessageDialog(null, "Nombre de archivo inválido", "Nombre de archivo inválido", JOptionPane.ERROR_MESSAGE);
             return false;
         }
         String[] datos;
         String aux;
+        //se habre el lector del archivo
         FileReader file = new FileReader(archivo);
         BufferedReader lector = new BufferedReader(file);
+        //se leen e imprimen las lineas del texto
         while ((aux = lector.readLine()) != null) {
             System.out.println(aux);
             datos = aux.split(" ");
@@ -321,13 +344,15 @@ public class ServidorDHCP {
             datos = null;
         }
         lector.close();
+        //por cada subred se generan las redes posibles
         for (Subred subred : this.subredes) {
             completarDireccionesIp(subred);
         }
         return true;
     }
-// a partir del arreglo de datos crea una subred y la anade al arreglo de subredes.
-
+    
+    // a partir del arreglo de datos crea una subred y la anade al arreglo de subredes.
+    //Para cada direccion se divide en los octetos(Strings), los cuales se convierten a integer y luego a byte
     private void agregarSubred(String[] datos) {
         Subred subred = new Subred();
         String[] direccion;
@@ -397,7 +422,7 @@ public class ServidorDHCP {
 
     }
 //Para una subred genera las direcciones posibles entre la posicion 0 de direcciones y posicion  1 del arreglo de direcciones. (Primera y ultima direccion)
-
+//Se revisa si la suma es posible sin salirse del rango (<=255)
     private void completarDireccionesIp(Subred subred) {
         byte[] ultima = subred.getDirecciones().get(1).getDireccion();
         byte[] aux = new byte[4];
@@ -460,7 +485,7 @@ public class ServidorDHCP {
             (byte) ((data >> 0) & 0xff)};
     }
 
-    private int byteArrayToInt(byte[] ipAddressLeaseTime) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    private int byteArrayToInt(byte[] data) {
+       return ByteBuffer.wrap(data).getInt();
     }
 }
