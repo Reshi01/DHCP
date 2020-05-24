@@ -6,9 +6,11 @@
 package Entidades;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -16,6 +18,8 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -538,9 +542,52 @@ public class ServidorDHCP {
         System.out.println("    Ip Asignada:"+cliente.getArrendamientoActual().getDireccionIp().getDireccion()[0]+"."+cliente.getArrendamientoActual().getDireccionIp().getDireccion()[1]+"."+cliente.getArrendamientoActual().getDireccionIp().getDireccion()[2]+"."+cliente.getArrendamientoActual().getDireccionIp().getDireccion()[3]);
         System.out.println("    Hora Inicio:"+cliente.getArrendamientoActual().getHoraInicio());
         System.out.println("    Hora Revocacion:"+cliente.getArrendamientoActual().getHoraRevocacion());
+        if(!cliente.getArrendamientoActual().getDireccionIp().isDisponible())
+            System.out.println("    Estado: En uso");
+        else
+            System.out.println("    Estado: Libre");
     }
     
-    public void actualizarLog(Cliente cliente){
-        
+    public void actualizarLog(Cliente cliente) throws IOException{
+        String texto, mac, ipAsignada;
+        String[] datos=new String[12];
+        //Hora de Escritura
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+        LocalDateTime now = LocalDateTime.now();
+        datos[0]=dtf.format(now); 
+        datos[1]=" | ";
+        //Estado de Solicitud
+        if(!cliente.getArrendamientoActual().getDireccionIp().isDisponible())
+            datos[2]="En Uso";
+        else
+            datos[2]="Libre";
+        datos[3]=" | ";
+        //Mac
+        mac=cliente.getMac()[0]+":"+cliente.getMac()[1]+":"+cliente.getMac()[2]+":"+cliente.getMac()[3];
+        datos[4]=mac;
+        datos[5]=" | ";
+        //IP asignada
+        ipAsignada=cliente.getArrendamientoActual().getDireccionIp().getDireccion()[1]+"."+cliente.getArrendamientoActual().getDireccionIp().getDireccion()[2]+"."+cliente.getArrendamientoActual().getDireccionIp().getDireccion()[3];
+        datos[6]=ipAsignada;
+        datos[7]=" | ";
+        //hora inicio
+        datos[8]=cliente.getArrendamientoActual().getHoraInicio().toString();
+        datos[9]=" | ";
+        //hora fin
+        datos[10]=cliente.getArrendamientoActual().getHoraRevocacion().toString();
+        datos[11]="\n";
+        //abrir archivo
+        BufferedWriter bw=null;
+        FileWriter fw=null;
+        File file=new File("RegistroLog.txt");
+        if(!file.exists()){
+            file.createNewFile();
+            bw.write("Registro:\n");
+        }
+        fw=new FileWriter(file.getAbsoluteFile(),true);
+        bw=new BufferedWriter(fw);
+        texto=datos.toString();
+        bw.write(texto);
+        bw.close();
     }
 }
