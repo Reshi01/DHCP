@@ -16,6 +16,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +43,7 @@ public class ServidorDHCP {
         subredes = new ArrayList<>();
         clientes = new HashMap<Pair<Integer, byte[]>, Cliente>();
         arrendamientos = new HashMap<Pair<byte[], byte[]>, Arrendamiento>();
-        ofertas=new HashMap<DireccionIP,Arrendamiento>();
+        ofertas = new HashMap<DireccionIP, Arrendamiento>();
     }
 
     public void correrServidor() {
@@ -79,7 +80,7 @@ public class ServidorDHCP {
                             PaqueteDHCP rDHCP = crearPaqueteDHCPOffer(cliente, pDHCP);
                             byte[] respuesta = rDHCP.construirPaquete();
                             DatagramPacket pRespuesta;
-                            byte[] broadcast=new  byte[4];
+                            byte[] broadcast = new byte[4];
                             if ((Byte.toUnsignedInt(pDHCP.getGiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[3]) == 0)) {
                                 if ((Byte.toUnsignedInt(pDHCP.getCiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[3]) == 0)) {
                                     //Si giaddr y ciaddr son cero, se envía el mensaje a la dirección broadcast
@@ -97,13 +98,83 @@ public class ServidorDHCP {
                                 System.out.println("Band 3");
                                 pRespuesta = new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getGiaddr()), 67);
                             }
-                            System.out.println("Direccion: "+broadcast[0]+broadcast[1]+broadcast[2]+broadcast[3]);
+                            System.out.println("Direccion: " + broadcast[0] + broadcast[1] + broadcast[2] + broadcast[3]);
                             socket.send(pRespuesta); //Se envía el paquete
 
                         } else if (tipoM == 3) { //Si el mensaje recibido es DHCPREQUEST
+                            if (pDHCP.getServerIdentifier() != null) { //Si está la opción Server Identifier
+                                byte[] bytesIp = ip.getAddress();
+                                byte[] bytesServidor = pDHCP.getServerIdentifier();
+                                byte[] dSolicitada = pDHCP.getRequestedIpAddress();
+                                DireccionIP dOferta = null;
+                                //Se busca la oferta correspondiente
+                                for (DireccionIP d : ofertas.keySet()) {
+                                    byte[] dir = d.getDireccion();
+                                    if ((dSolicitada[0] == dir[0]) && (dSolicitada[1] == dir[1]) && (dSolicitada[2] == dir[2]) && (dSolicitada[3] == dir[3])) {
+                                        dOferta = d;
+                                        break;
+                                    }
+                                }
+                                //Se revisa si la dirección del servidor es la inidcada en Server Identifier
+                                if ((bytesIp[0] == bytesServidor[0]) && (bytesIp[1] == bytesServidor[1]) && (bytesIp[2] == bytesServidor[2]) && (bytesIp[3] == bytesServidor[3])) {
+                                    if (dOferta != null) { //Se elimina oferta y se agrega arrendamiento al mapa de arrendamientos
+                                        Arrendamiento nuevoArr = ofertas.remove(dOferta);
+                                        arrendamientos.put(new Pair(nuevoArr.getCliente().getMac(), nuevoArr.getDireccionIp().getDireccion()), nuevoArr);
+                                        nuevoArr.setVigente(true);
+                                        nuevoArr.setHoraInicio(LocalDateTime.now());
+                                        nuevoArr.setHoraRevocacion(LocalDateTime.now().plusSeconds(nuevoArr.getTiempoArrendamiento()));
+                                        nuevoArr.getDireccionIp().setDisponible(false);
+                                        nuevoArr.getCliente().setArrendamientoActual(nuevoArr);
+                                        //Crear hilo para monitorear tiempo
+                                        //Llamar método para mandar DHCPACK 
+                                    }
+                                } else { //Se elmina la oferta si no fue aceptada.
+                                    if (dOferta != null) {
+                                        ofertas.remove(dOferta);
+                                    }
+                                }
+                            } else if ((Byte.toUnsignedInt(pDHCP.getCiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[3]) == 0)) {
+                                boolean nak = false;
+                                if (pDHCP.getRequestedIpAddress() != null) { //Si ciaddr es cero y se incluyó la opción Requested IP Address
+                                    if (perteneceSubred(pDHCP.getRequestedIpAddress(), cliente.getSubred())) {
+                                        Arrendamiento arr = arrendamientos.get(new Pair(cliente.getMac(), pDHCP.getRequestedIpAddress()));
+                                        if (arr != null) {
+                                            if (arr.isVigente()) {
+                                                nak = true;
+                                            }
+                                        }
+
+                                    }
+                                    else{
+                                        nak = true;
+                                    }
+                                    if(nak){
+                                        //Enviar DHCPNAK
+                                    }
+                                }
+                            } else { //Si ciaddr no es cero
+                                Arrendamiento arr = arrendamientos.get(new Pair(cliente.getMac(), pDHCP.getCiaddr()));
+                                int extension;
+                                if(pDHCP.getIpAddressLeaseTime() != null){
+                                    extension = byteArrayToInt(pDHCP.getIpAddressLeaseTime());
+                                }
+                                else{
+                                    extension = arr.getTiempoArrendamiento();
+                                }
+                                arr.setHoraRevocacion(LocalDateTime.now().plusSeconds(extension));
+                                //Enviar DHCPACK
+                                //Actualizar Hilo
+                            }
 
                         } else if (tipoM == 7) { //Si el mensaje recibido es DHCPRELEASE
-
+                            Arrendamiento arr = arrendamientos.get(new Pair(cliente.getMac(), pDHCP.getCiaddr()));
+                            if(arr != null){
+                                arr.setVigente(false);
+                                arr.getDireccionIp().setDisponible(true);
+                                cliente.setArrendamientoAnterior(cliente.getArrendamientoActual());
+                                cliente.setArrendamientoActual(null);
+                                //Matar hilo
+                            }
                         }
                     }
                 }
@@ -236,12 +307,12 @@ public class ServidorDHCP {
             paqueteOffer.setYiaddr(cliente.getArrendamientoActual().getDireccionIp().getDireccion());
             paqueteOffer.setIpAddressLeaseTime(intToByteArray(cliente.getArrendamientoActual().getTiempoArrendamiento()));
             nuevoArrendamiento.setTiempoArrendamiento(cliente.getArrendamientoActual().getTiempoArrendamiento());
-        //En caso contrario, escoger la dirección anterior del cliente, si está disponible
+            //En caso contrario, escoger la dirección anterior del cliente, si está disponible
         } else if (cliente.getArrendamientoAnterior() != null && cliente.getArrendamientoAnterior().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoAnterior().getDireccionIp()) == null) {
             direccionAsignada = true;
             paqueteOffer.setYiaddr(cliente.getArrendamientoAnterior().getDireccionIp().getDireccion());
             nuevoArrendamiento.setDireccionIp(cliente.getArrendamientoAnterior().getDireccionIp());
-        //En caso contrario se escoge la dirección solicitada, si está libre. 
+            //En caso contrario se escoge la dirección solicitada, si está libre. 
         } else if (paqueteDiscover.getRequestedIpAddress() != null && perteneceSubred(paqueteDiscover.getRequestedIpAddress(), cliente.getSubred())) {
             byte[] aux = paqueteDiscover.getRequestedIpAddress();
             for (DireccionIP direcciones : cliente.getSubred().getDirecciones()) {
@@ -258,9 +329,9 @@ public class ServidorDHCP {
                     break;
                 }
             }
-        } 
+        }
         //En caso contrario, escoger una dirección de la subred apropiada que esté disponible. 
-        if(!direccionAsignada){
+        if (!direccionAsignada) {
             for (DireccionIP direcciones : cliente.getSubred().getDirecciones()) {
                 if (direcciones.isDisponible()) {
                     direccionAsignada = true;
@@ -303,14 +374,14 @@ public class ServidorDHCP {
         if (paqueteDiscover.getIpAddressLeaseTime() != null) {
             paqueteOffer.setIpAddressLeaseTime(paqueteDiscover.getIpAddressLeaseTime());
             nuevoArrendamiento.setTiempoArrendamiento(byteArrayToInt(paqueteDiscover.getIpAddressLeaseTime()));
-        //Si el cliente no pide una direccion, y no tiene arrendamiento actual se le asigna el tiempo por defecto. El arrendamiento actual se revisa en el primer condicional del metodo.
+            //Si el cliente no pide una direccion, y no tiene arrendamiento actual se le asigna el tiempo por defecto. El arrendamiento actual se revisa en el primer condicional del metodo.
         } else if (paqueteOffer.getIpAddressLeaseTime() == null) {
             paqueteOffer.setIpAddressLeaseTime(intToByteArray(cliente.getSubred().getTiempoArrendamiento()));
             nuevoArrendamiento.setTiempoArrendamiento(cliente.getSubred().getTiempoArrendamiento());
         }
         //Se configuran las opciones del mensaje
         paqueteOffer.setMessageType((byte) 2);
-        paqueteOffer.setServerIdentiferier(this.ip.getAddress());
+        paqueteOffer.setServerIdentifier(this.ip.getAddress());
         paqueteOffer.setSubnetMask(cliente.getSubred().getMascaraRed());
         paqueteOffer.setDns(cliente.getSubred().getDns());
         paqueteOffer.setRouter(cliente.getSubred().getGateway());
@@ -360,7 +431,7 @@ public class ServidorDHCP {
         }
         return true;
     }
-    
+
     // a partir del arreglo de datos crea una subred y la anade al arreglo de subredes.
     //Para cada direccion se divide en los octetos(Strings), los cuales se convierten a integer y luego a byte
     private void agregarSubred(String[] datos) {
@@ -433,6 +504,7 @@ public class ServidorDHCP {
     }
 //Para una subred genera las direcciones posibles entre la posicion 0 de direcciones y posicion  1 del arreglo de direcciones. (Primera y ultima direccion)
 //Se revisa si la suma es posible sin salirse del rango (<=255)
+
     private void completarDireccionesIp(Subred subred) {
         byte[] ultima = subred.getDirecciones().get(1).getDireccion();
         byte[] aux = new byte[4];
@@ -496,6 +568,6 @@ public class ServidorDHCP {
     }
 
     private int byteArrayToInt(byte[] data) {
-       return ByteBuffer.wrap(data).getInt();
+        return ByteBuffer.wrap(data).getInt();
     }
 }
