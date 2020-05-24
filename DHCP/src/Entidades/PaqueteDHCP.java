@@ -40,8 +40,9 @@ public class PaqueteDHCP {
     }
     
     public PaqueteDHCP(byte[] bytes) {
-        if(bytes.length < 300){ //El tamaño mínimo del mensaje es de 300 bytes
+        if(bytes.length < 548){ //El tamaño mínimo del mensaje es de 548 bytes
             System.out.println("Ocurrió un problema leyendo los bytes.");
+            return;
         }
         op = bytes[0];
         htype = bytes[1];
@@ -169,7 +170,172 @@ public class PaqueteDHCP {
     }
     
     public byte[] construirPaquete(){
-        return null;
+        //Primero se calcula el tamaño de las opciones
+        int tamOp = 5; //Magic Cookie + end
+        int tamTotal;
+        tamOp += 3; //Message Type (siempre debe estar)
+        if(parameterRequestList != null){
+            tamOp += 2 + parameterRequestList.size(); //Parameter Request List
+        }
+        if(requestedIpAddress != null){
+            tamOp += 6; //Requested IP Adress
+        }
+        if(ipAddressLeaseTime != null){
+            tamOp += 6; //IP Address Lease Time
+        }
+        if(serverIdentifier != null){
+            tamOp += 6; //Server Identifier
+        }
+        if(subnetMask != null){
+            tamOp += 6;
+        }
+        if(dns != null){
+            tamOp += 2 + 4*(dns.size()); //DNS
+        }
+        if(router != null){
+            tamOp += 2 + 4*(router.size());
+        }
+        if(tamOp < 312){
+            tamTotal = 548; //Tamaño del mensaje si el tamaño de las opciones es el mínimo
+        }
+        else{
+            tamTotal = 236 + tamOp; //Tamaño del mensaje si las opciones superan el mínimo
+        }
+        
+        byte[] paquete = new byte[tamTotal]; //Arreglo de bytes en el que se guarda el mensaje
+        paquete[0] = op;
+        paquete[1] = htype;
+        paquete[2] = hlen;
+        paquete[3] = hops;
+        for(int i = 0; i < 4; i++){
+            paquete[4 + i] = xid[i];
+        }
+        paquete[8] = secs[0];
+        paquete[9] = secs[1];
+        paquete[10] = flags[0];
+        paquete[11] = flags[1];
+        for(int i = 0; i < 4; i++){
+            paquete[12 + i] = ciaddr[i];
+        }
+        for(int i = 0; i < 4; i++){
+            paquete[16 + i] = yiaddr[i];
+        }
+        for(int i = 0; i < 4; i++){
+            paquete[20 + i] = siaddr[i];
+        }
+        for(int i = 0; i < 4; i++){
+            paquete[24 + i] = giaddr[i];
+        }
+        for(int i = 0; i < 16; i++){
+            paquete[28 + i] = chaddr[i];
+        }
+        for(int i = 0; i < 64; i++){
+            paquete[44 + i] = sname[i];
+        }
+        for(int i = 0; i < 128; i++){
+            paquete[108 + i] = sname[i];
+        }
+        //Inicio de campo de opciones
+        //Magic Cookie
+        paquete[236] = (byte)(99 & 0xff);
+        paquete[237] = (byte)(130 & 0xff);
+        paquete[238] = (byte)(83 & 0xff);
+        paquete[239] = (byte)(99 & 0xff);
+        int i = 240;
+        //Message Type
+        paquete[i] = (byte)(53 & 0xff);
+        i++;
+        paquete[i] = (byte)(1 & 0xff);
+        i++;
+        paquete[i] = messageType;
+        i++;
+        //Parameter Request List
+        if(parameterRequestList != null){
+            paquete[i] = (byte)(55 & 0xff);
+            i++;
+            paquete[i] = (byte)(parameterRequestList.size() & 0xff);
+            i++;
+            for(Integer code : parameterRequestList){
+                paquete[i] = (byte)(code & 0xff);
+                i++;
+            }
+        }
+        //Requested IP Address
+        if(requestedIpAddress != null){
+            paquete[i] = (byte)(50 & 0xff);
+            i++;
+            paquete[i] = (byte)(4 & 0xff);
+            i++;
+            for(int j = 0; j < 4; j++){
+                paquete[i] = requestedIpAddress[j];
+                i++;
+            }
+        }
+        //IP Address Lease time
+        if(ipAddressLeaseTime != null){
+            paquete[i] = (byte)(51 & 0xff);
+            i++;
+            paquete[i] = (byte)(4 & 0xff);
+            i++;
+            for(int j = 0; j < 4; j++){
+                paquete[i] = ipAddressLeaseTime[j];
+                i++;
+            }
+        }
+        //Server Identifier
+        if(serverIdentifier != null){
+            paquete[i] = (byte)(54 & 0xff);
+            i++;
+            paquete[i] = (byte)(4 & 0xff);
+            i++;
+            for(int j = 0; j < 4; j++){
+                paquete[i] = serverIdentifier[j];
+                i++;
+            }
+        }
+        //Subnet Mask
+        if(subnetMask != null){
+            paquete[i] = (byte)(1 & 0xff);
+            i++;
+            paquete[i] = (byte)(4 & 0xff);
+            i++;
+            for(int j = 0; j < 4; j++){
+                paquete[i] = subnetMask[j];
+                i++;
+            }
+        }
+        //DNS
+        if(dns != null){
+            paquete[i] = (byte)(6 & 0xff);
+            i++;
+            paquete[i] = (byte)((dns.size()*4) & 0xff);
+            i++;
+            for(int j = 0; j < dns.size(); j++){
+                for(int k = 0; k < 4; k++){
+                    paquete[i] = dns.get(j)[k];
+                    i++;
+                }
+            }
+        }
+        //Router
+        if(router != null){
+            paquete[i] = (byte)(3 & 0xff);
+            i++;
+            paquete[i] = (byte)((router.size()*4) & 0xff);
+            i++;
+            for(int j = 0; j < router.size(); j++){
+                for(int k = 0; k < 4; k++){
+                    paquete[i] = router.get(j)[k];
+                    i++;
+                }
+            }
+        }
+        while(i != (tamTotal - 1)){//Hasta que se llegue a la posición en la que debe ir la opción End
+            paquete[i] = (byte)(0); //Opción Pad
+            i++;
+        }
+        paquete[i] = (byte)(255 & 0xff); //Opción End
+        return paquete;
     }
 
     public byte getOp() {
