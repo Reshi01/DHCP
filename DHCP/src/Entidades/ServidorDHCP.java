@@ -337,6 +337,7 @@ public class ServidorDHCP {
                     direccionAsignada = true;
                     paqueteOffer.setYiaddr(direcciones.getDireccion());
                     nuevoArrendamiento.setDireccionIp(direcciones);
+                    break;
                 }
             }
         }
