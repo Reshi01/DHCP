@@ -67,7 +67,7 @@ public class Arrendamiento {
         return horaRevocacion;
     }
 
-    public void setHoraRenovacion(LocalDateTime horaRevocacion) {
+    public void setHoraRevocacion(LocalDateTime horaRevocacion) {
         this.horaRevocacion = horaRevocacion;
     }
 

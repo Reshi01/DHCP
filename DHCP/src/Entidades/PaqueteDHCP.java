@@ -482,11 +482,11 @@ public class PaqueteDHCP {
         this.ipAddressLeaseTime = ipAddressLeaseTime;
     }
 
-    public byte[] getServerIdentiferier() {
+    public byte[] getServerIdentifier() {
         return serverIdentifier;
     }
 
-    public void setServerIdentiferier(byte[] serverIdentiferier) {
+    public void setServerIdentifier(byte[] serverIdentiferier) {
         this.serverIdentifier = serverIdentiferier;
     }
 
