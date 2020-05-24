@@ -25,6 +25,7 @@ public class DHCP {
         
         if(!servidor.cofigurar()){
             System.out.println("Error al configurar servidor");
+            return;
         }
         
         servidor.correrServidor();

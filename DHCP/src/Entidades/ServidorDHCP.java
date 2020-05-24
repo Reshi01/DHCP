@@ -42,6 +42,7 @@ public class ServidorDHCP {
         subredes = new ArrayList<>();
         clientes = new HashMap<Pair<Integer, byte[]>, Cliente>();
         arrendamientos = new HashMap<Pair<byte[], byte[]>, Arrendamiento>();
+        ofertas=new HashMap<DireccionIP,Arrendamiento>();
     }
 
     public void correrServidor() {
@@ -78,17 +79,25 @@ public class ServidorDHCP {
                             PaqueteDHCP rDHCP = crearPaqueteDHCPOffer(cliente, pDHCP);
                             byte[] respuesta = rDHCP.construirPaquete();
                             DatagramPacket pRespuesta;
+                            byte[] broadcast=new  byte[4];
                             if ((Byte.toUnsignedInt(pDHCP.getGiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[3]) == 0)) {
                                 if ((Byte.toUnsignedInt(pDHCP.getCiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[3]) == 0)) {
                                     //Si giaddr y ciaddr son cero, se envía el mensaje a la dirección broadcast
-                                    byte[] broadcast = {(byte) '\uffff', (byte) '\uffff', (byte) '\uffff', (byte) '\uffff'};
+                                    System.out.println("Band 1");
+                                    broadcast[0] = (byte) '\uffff';
+                                    broadcast[1] = (byte) '\uffff';
+                                    broadcast[2] = (byte) '\uffff';
+                                    broadcast[3] = (byte) '\uffff';
                                     pRespuesta = new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(broadcast), 68);
                                 } else { //Si giaddr es cero y ciaddr no, se envía el mensaje a la dirección en ciaddr
+                                    System.out.println("Band 2");
                                     pRespuesta = new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getCiaddr()), 68);
                                 }
                             } else { //Si giaddr no es cero, se envía el mensaje al puerto de servidor DHCP de la dirección en ese campo
+                                System.out.println("Band 3");
                                 pRespuesta = new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getGiaddr()), 67);
                             }
+                            System.out.println("Direccion: "+broadcast[0]+broadcast[1]+broadcast[2]+broadcast[3]);
                             socket.send(pRespuesta); //Se envía el paquete
 
                         } else if (tipoM == 3) { //Si el mensaje recibido es DHCPREQUEST
@@ -277,16 +286,17 @@ public class ServidorDHCP {
         aux[1] = 0;
         paqueteOffer.setSecs(aux);
         byte[] aux2 = new byte[4];
-        aux[0] = 0;
-        aux[1] = 0;
-        aux[2] = 0;
-        aux[3] = 0;
+        aux2[0] = 0;
+        aux2[1] = 0;
+        aux2[2] = 0;
+        aux2[3] = 0;
         paqueteOffer.setCiaddr(aux2);
         paqueteOffer.setSiaddr(this.ip.getAddress());
         paqueteOffer.setFlags(paqueteDiscover.getFlags());
         paqueteOffer.setGiaddr(paqueteDiscover.getGiaddr());
         paqueteOffer.setChaddr(paqueteDiscover.getChaddr());
-        paqueteOffer.setSname(null);
+        byte[] aux3 = new byte[64];
+        paqueteOffer.setSname(aux3);
         paqueteOffer.setFile(paqueteDiscover.getFile());
         //Sellecion del tiempo de arrendamiento
         //Si el cliente pide un tiempo especifico se le permite tenerlo

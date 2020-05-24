@@ -233,7 +233,7 @@ public class PaqueteDHCP {
             paquete[44 + i] = sname[i];
         }
         for(int i = 0; i < 128; i++){
-            paquete[108 + i] = sname[i];
+            paquete[108 + i] = file[i];
         }
         //Inicio de campo de opciones
         //Magic Cookie
