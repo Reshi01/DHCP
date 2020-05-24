@@ -324,6 +324,7 @@ public class ServidorDHCP {
     
     public PaqueteDHCP crearPaqueteDHCPAck(Cliente cliente, PaqueteDHCP paqueteRequest) {
         PaqueteDHCP paqueteAck=new PaqueteDHCP();
+        //Configuracion de parametros de paquete ACK
         paqueteAck.setOp((byte)2);
         paqueteAck.setHtype(paqueteRequest.getHtype());
         paqueteAck.setHlen(paqueteRequest.getHlen());
@@ -332,8 +333,28 @@ public class ServidorDHCP {
         byte[] aux = new byte[2];
         paqueteAck.setSecs(aux);
         paqueteAck.setCiaddr(paqueteRequest.getCiaddr());
-        //paqueteAck.setYiaddr();
-        
+        //Se utiliza requested ip address si esta existe
+        if(paqueteRequest.getRequestedIpAddress()!=null){
+            paqueteAck.setYiaddr(paqueteRequest.getRequestedIpAddress());
+        //En caso contrario, si ciaddr no es 0, se utiliza esta direccion
+        }else if(paqueteRequest.getCiaddr()[0]!=(byte)0 || paqueteRequest.getCiaddr()[1]!=(byte)0 || paqueteRequest.getCiaddr()[2]!=(byte)0 || paqueteRequest.getCiaddr()[3]!=(byte)0){
+            paqueteAck.setYiaddr(paqueteRequest.getCiaddr());
+        //En caso contrario se genera un error
+        }else{
+            System.out.println("Error al elegir yiaddr en paquete ACK");
+            return null;
+        }
+        paqueteAck.setSiaddr(this.ip.getAddress());
+        paqueteAck.setFlags(paqueteRequest.getFlags());
+        paqueteAck.setGiaddr(paqueteRequest.getGiaddr());
+        paqueteAck.setChaddr(paqueteRequest.getChaddr());
+        byte[] aux3 = new byte[64];
+        paqueteAck.setSname(aux3);
+        paqueteAck.setFile(paqueteRequest.getFile());
+        //Configuracion de opciones de paquete ACK
+        paqueteAck.setIpAddressLeaseTime(intToByteArray(cliente.getArrendamientoActual().getTiempoArrendamiento()));
+        paqueteAck.setMessageType((byte)5);
+        paqueteAck.setServerIdentiferier(this.ip.getAddress());
         return paqueteAck;
     }
     
