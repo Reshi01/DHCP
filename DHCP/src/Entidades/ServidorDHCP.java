@@ -263,7 +263,6 @@ public class ServidorDHCP {
         if(!direccionAsignada){
             for (DireccionIP direcciones : cliente.getSubred().getDirecciones()) {
                 if (direcciones.isDisponible()) {
-                    System.out.println("DIr: "+direcciones.getDireccion()[0]+"."+direcciones.getDireccion()[1]+"."+direcciones.getDireccion()[2]+"."+direcciones.getDireccion()[3]);
                     direccionAsignada = true;
                     paqueteOffer.setYiaddr(direcciones.getDireccion());
                     nuevoArrendamiento.setDireccionIp(direcciones);

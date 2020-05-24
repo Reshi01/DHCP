@@ -120,21 +120,21 @@ public class PaqueteDHCP {
             else if(codigo == 51){ //Opción IP Address Lease Time
                 ipAddressLeaseTime = new byte[tam];
                 for(int j = 0; j < tam; j++){
-                    requestedIpAddress[j] = bytes[i];
+                    ipAddressLeaseTime[j] = bytes[i];
                     i++;
                 }
             }
             else if(codigo == 54){ //Opción Server Identifier
                 serverIdentifier = new byte[tam];
                 for(int j = 0; j < tam; j++){
-                    requestedIpAddress[j] = bytes[i];
+                    serverIdentifier[j] = bytes[i];
                     i++;
                 }
             }
             else if(codigo == 1){ //Opción Subnet Mask
                 subnetMask = new byte[tam];
                 for(int j = 0; j < tam; j++){
-                    requestedIpAddress[j] = bytes[i];
+                    subnetMask[j] = bytes[i];
                     i++;
                 }
             }
