@@ -19,10 +19,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
-<<<<<<< HEAD
 import java.time.format.DateTimeFormatter;
-=======
->>>>>>> f1a47a24a5603401f7f1f040ae12e1cd82fb6837
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -425,14 +422,42 @@ public class ServidorDHCP {
         paqueteAck.setFlags(paqueteRequest.getFlags());
         paqueteAck.setGiaddr(paqueteRequest.getGiaddr());
         paqueteAck.setChaddr(paqueteRequest.getChaddr());
-        byte[] aux3 = new byte[64];
-        paqueteAck.setSname(aux3);
+        paqueteAck.setSname(paqueteRequest.getSname());
         paqueteAck.setFile(paqueteRequest.getFile());
         //Configuracion de opciones de paquete ACK
         paqueteAck.setIpAddressLeaseTime(intToByteArray(cliente.getArrendamientoActual().getTiempoArrendamiento()));
         paqueteAck.setMessageType((byte)5);
-        paqueteAck.setServerIdentiferier(this.ip.getAddress());
+        paqueteAck.setServerIdentifier(this.ip.getAddress());
         return paqueteAck;
+    }
+    
+    public PaqueteDHCP crearPaqueteDHCPNack(Cliente cliente, PaqueteDHCP paqueteRequest) {
+        PaqueteDHCP paqueteNack=new PaqueteDHCP();
+        //Configuracion de opciones de paquete NACK
+        paqueteNack.setOp((byte)2);
+        paqueteNack.setHtype(paqueteRequest.getHtype());
+        paqueteNack.setHlen(paqueteRequest.getHlen());
+        paqueteNack.setHops((byte)0);
+        paqueteNack.setXid(paqueteRequest.getXid());
+        byte[] aux = new byte[2];
+        paqueteNack.setSecs(aux);
+        byte[] aux2 = new byte[2];
+        paqueteNack.setCiaddr(aux2);
+        byte[] aux3 = new byte[4];
+        paqueteNack.setYiaddr(aux3);
+        byte[] aux4 = new byte[4];
+        paqueteNack.setSiaddr(aux4);
+        paqueteNack.setFlags(paqueteRequest.getFlags());
+        paqueteNack.setGiaddr(paqueteRequest.getGiaddr());
+        paqueteNack.setChaddr(paqueteRequest.getChaddr());
+        byte[] aux5 = new byte[64];
+        paqueteNack.setSname(aux5);
+        byte[] aux6 = new byte[128];
+        paqueteNack.setFile(aux6);
+        //Configuracion Opciones de pquete Nack
+        paqueteNack.setMessageType((byte)6);
+        paqueteNack.setServerIdentifier(this.ip.getAddress());
+        return paqueteNack;
     }
     
     public boolean cofigurar() throws FileNotFoundException, IOException {
