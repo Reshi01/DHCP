@@ -283,14 +283,8 @@ public class ServidorDHCP {
         paqueteOffer.setHops((byte) 0);
         paqueteOffer.setXid(paqueteDiscover.getXid());
         byte[] aux = new byte[2];
-        aux[0] = 0;
-        aux[1] = 0;
         paqueteOffer.setSecs(aux);
         byte[] aux2 = new byte[4];
-        aux2[0] = 0;
-        aux2[1] = 0;
-        aux2[2] = 0;
-        aux2[3] = 0;
         paqueteOffer.setCiaddr(aux2);
         paqueteOffer.setSiaddr(this.ip.getAddress());
         paqueteOffer.setFlags(paqueteDiscover.getFlags());
@@ -324,9 +318,25 @@ public class ServidorDHCP {
             nuevoArrendamiento.setGateway(cliente.getSubred().getGateway());
             this.ofertas.put(nuevoArrendamiento.getDireccionIp(), nuevoArrendamiento);
         }
+        System.out.println("Dir: "+paqueteOffer.getYiaddr()[0]+"."+paqueteOffer.getYiaddr()[1]+"."+paqueteOffer.getYiaddr()[2]+"."+paqueteOffer.getYiaddr()[3]);
         return paqueteOffer;
     }
-
+    
+    public PaqueteDHCP crearPaqueteDHCPAck(Cliente cliente, PaqueteDHCP paqueteRequest) {
+        PaqueteDHCP paqueteAck=new PaqueteDHCP();
+        paqueteAck.setOp((byte)2);
+        paqueteAck.setHtype(paqueteRequest.getHtype());
+        paqueteAck.setHlen(paqueteRequest.getHlen());
+        paqueteAck.setHops((byte)0);
+        paqueteAck.setXid(paqueteRequest.getXid());
+        byte[] aux = new byte[2];
+        paqueteAck.setSecs(aux);
+        paqueteAck.setCiaddr(paqueteRequest.getCiaddr());
+        //paqueteAck.setYiaddr();
+        
+        return paqueteAck;
+    }
+    
     public boolean cofigurar() throws FileNotFoundException, IOException {
         JFileChooser selector = new JFileChooser();
         JOptionPane.showMessageDialog(null, "Indique archivo de configuracion", "Indique archivo de configuracion", JOptionPane.INFORMATION_MESSAGE);
@@ -498,5 +508,13 @@ public class ServidorDHCP {
 
     private int byteArrayToInt(byte[] data) {
        return ByteBuffer.wrap(data).getInt();
+    }
+    
+    public void imprimirCambio(){
+        
+    }
+    
+    public void actualizarLog(){
+        
     }
 }
