@@ -65,11 +65,6 @@ public class ServidorDHCP {
                 System.out.println("Mensaje Recibido:");
                 System.out.println("op:" + Byte.toUnsignedInt(pDHCP.getOp()));
                 System.out.println("Message Type: " + Byte.toUnsignedInt(pDHCP.getMessageType()));
-                System.out.println("Requested IP Address: " + Byte.toUnsignedInt(pDHCP.getRequestedIpAddress()[0]) + "." + Byte.toUnsignedInt(pDHCP.getRequestedIpAddress()[1]) + "." + Byte.toUnsignedInt(pDHCP.getRequestedIpAddress()[2]) + "." + Byte.toUnsignedInt(pDHCP.getRequestedIpAddress()[3]));
-                System.out.println("Parameter Request List:");
-                for (Integer i : pDHCP.getParameterRequestList()) {
-                    System.out.println(i);
-                }
                 //FIN IMPRESIONES
 
                 //Se revisa que sea BOOTREQUEST
@@ -107,7 +102,7 @@ public class ServidorDHCP {
                                         nuevoArr.setHoraInicio(LocalDateTime.now());
                                         nuevoArr.setHoraRevocacion(LocalDateTime.now().plusSeconds(nuevoArr.getTiempoArrendamiento()));
                                         nuevoArr.getDireccionIp().setDisponible(false);
-                                        nuevoArr.getCliente().setArrendamientoActual(nuevoArr);
+                                        cliente.setArrendamientoActual(nuevoArr);
                                         PaqueteDHCP rDHCP = crearPaqueteDHCPAck(cliente, pDHCP); //Se crea el paquete DHCPACK
                                         DatagramPacket pRespuesta = obtenerDatagrama(pDHCP, rDHCP); //Se obtiene el datagrama
                                         socket.send(pRespuesta); //Se envía el paquete
@@ -138,17 +133,27 @@ public class ServidorDHCP {
                                     }
                                 }
                             } else { //Si ciaddr no es cero
-                                Arrendamiento arr = arrendamientos.get(new Pair(cliente.getMac(), pDHCP.getCiaddr()));
-                                int extension;
+                                Arrendamiento arr = null;
+                                for(Pair<byte[], byte[]> p : arrendamientos.keySet()){
+                                    if((p.getKey()[0] == cliente.getMac()[0]) && (p.getKey()[1] == cliente.getMac()[1]) && (p.getKey()[2] == cliente.getMac()[2]) && (p.getKey()[3] == cliente.getMac()[3])){
+                                        if((p.getValue()[0] == pDHCP.getCiaddr()[0]) && (p.getValue()[1] == pDHCP.getCiaddr()[1]) && (p.getValue()[2] == pDHCP.getCiaddr()[2]) && (p.getValue()[3] == pDHCP.getCiaddr()[3])){
+                                           arr = arrendamientos.get(p);
+                                        }
+                                    }
+                                }
+                                if(arr != null){
+                                    int extension;
                                 if (pDHCP.getIpAddressLeaseTime() != null) {
                                     extension = byteArrayToInt(pDHCP.getIpAddressLeaseTime());
                                 } else {
                                     extension = arr.getTiempoArrendamiento();
                                 }
                                 arr.setHoraRevocacion(LocalDateTime.now().plusSeconds(extension));
+                                System.out.println("Aca1");
                                 PaqueteDHCP rDHCP = crearPaqueteDHCPAck(cliente, pDHCP); //Se crea el paquete DHCPACK
                                 DatagramPacket pRespuesta = obtenerDatagrama(pDHCP, rDHCP); //Se obtiene el datagrama
                                 socket.send(pRespuesta); //Se envía el paquete
+                                }
                             }
 
                         } else if (tipoM == 7) { //Si el mensaje recibido es DHCPRELEASE
@@ -180,7 +185,7 @@ public class ServidorDHCP {
     private DatagramPacket obtenerDatagrama(PaqueteDHCP pDHCP, PaqueteDHCP rDHCP) throws UnknownHostException {
         byte[] respuesta = rDHCP.construirPaquete();
         if ((Byte.toUnsignedInt(pDHCP.getGiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[3]) == 0)) {
-            if ((Byte.toUnsignedInt(pDHCP.getCiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[3]) == 0) && (Byte.toUnsignedInt(pDHCP.getFlags()[0]) == 255)) {
+            if ((Byte.toUnsignedInt(pDHCP.getCiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[3]) == 0)) {
                 //Si giaddr y ciaddr son cero, se envía el mensaje a la dirección broadcast
                 System.out.println("Band 1");
                 byte[] broadcast = new byte[4];
@@ -190,7 +195,6 @@ public class ServidorDHCP {
                 broadcast[3] = (byte) (255 & 0xff);
                 return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(broadcast), 68);
             } else { //Si giaddr es cero y ciaddr no, se envía el mensaje a la dirección en ciaddr
-                System.out.println("Band 2");
                 return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getCiaddr()), 68);
             }
         } else { //Si giaddr no es cero, se envía el mensaje al puerto de servidor DHCP de la dirección en ese campo
@@ -447,6 +451,8 @@ public class ServidorDHCP {
         paqueteAck.setSname(paqueteRequest.getSname());
         paqueteAck.setFile(paqueteRequest.getFile());
         //Configuracion de opciones de paquete ACK
+        System.out.println("-"+cliente.getArrendamientoActual());
+        System.out.println("");
         paqueteAck.setIpAddressLeaseTime(intToByteArray(cliente.getArrendamientoActual().getTiempoArrendamiento()));
         paqueteAck.setMessageType((byte) 5);
         paqueteAck.setServerIdentifier(this.ip.getAddress());
