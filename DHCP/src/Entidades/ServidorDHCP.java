@@ -62,6 +62,7 @@ public class ServidorDHCP {
                 pDHCP = new PaqueteDHCP(bytesR);
 
                 //IMPRESIONES PARA DEPURAR
+                System.out.println("");
                 System.out.println("Mensaje Recibido:");
                 System.out.println("op:" + Byte.toUnsignedInt(pDHCP.getOp()));
                 System.out.println("Message Type: " + Byte.toUnsignedInt(pDHCP.getMessageType()));
@@ -106,6 +107,8 @@ public class ServidorDHCP {
                                         PaqueteDHCP rDHCP = crearPaqueteDHCPAck(cliente, pDHCP); //Se crea el paquete DHCPACK
                                         DatagramPacket pRespuesta = obtenerDatagrama(pDHCP, rDHCP); //Se obtiene el datagrama
                                         socket.send(pRespuesta); //Se envía el paquete
+                                        imprimirCambio(cliente, "Arriendo realizado");
+                                        actualizarLog(cliente, "Arriendo realizado");
                                         //Crear hilo para monitorear tiempo
                                     }
                                 } else { //Se elmina la oferta si no fue aceptada.
@@ -130,6 +133,7 @@ public class ServidorDHCP {
                                         PaqueteDHCP rDHCP = crearPaqueteDHCPNack(cliente, pDHCP); //Se crea el paquete DHCPNAK
                                         DatagramPacket pRespuesta = obtenerDatagramaNack(pDHCP, rDHCP); //Se obtiene el datagrama
                                         socket.send(pRespuesta); //Se envía el paquete
+                                        actualizarLog(cliente, "Solicitud de informacion");
                                     }
                                 }
                             } else { //Si ciaddr no es cero
@@ -138,6 +142,7 @@ public class ServidorDHCP {
                                     if((p.getKey()[0] == cliente.getMac()[0]) && (p.getKey()[1] == cliente.getMac()[1]) && (p.getKey()[2] == cliente.getMac()[2]) && (p.getKey()[3] == cliente.getMac()[3])){
                                         if((p.getValue()[0] == pDHCP.getCiaddr()[0]) && (p.getValue()[1] == pDHCP.getCiaddr()[1]) && (p.getValue()[2] == pDHCP.getCiaddr()[2]) && (p.getValue()[3] == pDHCP.getCiaddr()[3])){
                                            arr = arrendamientos.get(p);
+                                           break;
                                         }
                                     }
                                 }
@@ -149,10 +154,12 @@ public class ServidorDHCP {
                                     extension = arr.getTiempoArrendamiento();
                                 }
                                 arr.setHoraRevocacion(LocalDateTime.now().plusSeconds(extension));
-                                System.out.println("Aca1");
+                                cliente.setArrendamientoActual(arr);
                                 PaqueteDHCP rDHCP = crearPaqueteDHCPAck(cliente, pDHCP); //Se crea el paquete DHCPACK
                                 DatagramPacket pRespuesta = obtenerDatagrama(pDHCP, rDHCP); //Se obtiene el datagrama
                                 socket.send(pRespuesta); //Se envía el paquete
+                                imprimirCambio(cliente, "Arriendo extendido");
+                                actualizarLog(cliente, "Arriendo extendido");
                                 }
                             }
 
@@ -330,7 +337,7 @@ public class ServidorDHCP {
         Arrendamiento nuevoArrendamiento = new Arrendamiento();
         //Se selecciona una direccion ip para prestar
         //Si el cliente tiene una dirección actualmente prestada, escoger esa. 
-        if (cliente.getArrendamientoActual() != null && cliente.getArrendamientoActual().getDireccionIp().isDisponible() && this.ofertas.get(cliente.getArrendamientoActual().getDireccionIp()) == null) {
+        if (cliente.getArrendamientoActual() != null && this.ofertas.get(cliente.getArrendamientoActual().getDireccionIp()) == null) {
             direccionAsignada = true;
             nuevo = false;
             paqueteOffer.setYiaddr(cliente.getArrendamientoActual().getDireccionIp().getDireccion());
@@ -418,7 +425,6 @@ public class ServidorDHCP {
             nuevoArrendamiento.setGateway(cliente.getSubred().getGateway());
             this.ofertas.put(nuevoArrendamiento.getDireccionIp(), nuevoArrendamiento);
         }
-        System.out.println("Dir: " + paqueteOffer.getYiaddr()[0] + "." + paqueteOffer.getYiaddr()[1] + "." + paqueteOffer.getYiaddr()[2] + "." + paqueteOffer.getYiaddr()[3]);
         return paqueteOffer;
     }
 
@@ -451,8 +457,6 @@ public class ServidorDHCP {
         paqueteAck.setSname(paqueteRequest.getSname());
         paqueteAck.setFile(paqueteRequest.getFile());
         //Configuracion de opciones de paquete ACK
-        System.out.println("-"+cliente.getArrendamientoActual());
-        System.out.println("");
         paqueteAck.setIpAddressLeaseTime(intToByteArray(cliente.getArrendamientoActual().getTiempoArrendamiento()));
         paqueteAck.setMessageType((byte) 5);
         paqueteAck.setServerIdentifier(this.ip.getAddress());
@@ -509,6 +513,7 @@ public class ServidorDHCP {
         FileReader file = new FileReader(archivo);
         BufferedReader lector = new BufferedReader(file);
         //se leen e imprimen las lineas del texto
+        System.out.println("Iniciando Configuracion");
         while ((aux = lector.readLine()) != null) {
             System.out.println(aux);
             datos = aux.split(" ");
@@ -520,6 +525,9 @@ public class ServidorDHCP {
         for (Subred subred : this.subredes) {
             completarDireccionesIp(subred);
         }
+        crearLog();
+        System.out.println("Configuracion realizada con exito");
+        System.out.println("");
         return true;
     }
 
@@ -665,10 +673,10 @@ public class ServidorDHCP {
     public void imprimirCambio(Cliente cliente, String mensaje) {
         System.out.println("----------------------------------------------------");
         System.out.println(mensaje + ":");
-        System.out.println("    Mac:" + cliente.getMac());
-        System.out.println("    Ip Asignada:" + cliente.getArrendamientoActual().getDireccionIp().getDireccion()[0] + "." + cliente.getArrendamientoActual().getDireccionIp().getDireccion()[1] + "." + cliente.getArrendamientoActual().getDireccionIp().getDireccion()[2] + "." + cliente.getArrendamientoActual().getDireccionIp().getDireccion()[3]);
-        System.out.println("    Hora Inicio:" + cliente.getArrendamientoActual().getHoraInicio());
-        System.out.println("    Hora Revocacion:" + cliente.getArrendamientoActual().getHoraRevocacion());
+        System.out.println("    Mac: " +String.format("%02x",cliente.getMac()[0])+":"+String.format("%02x",cliente.getMac()[1])+":"+String.format("%02x",cliente.getMac()[2])+":"+String.format("%02x",cliente.getMac()[3])+":"+String.format("%02x",cliente.getMac()[4])+":"+String.format("%02x",cliente.getMac()[5]));
+        System.out.println("    Ip Asignada: " + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[0]&0xFF) + "." +(cliente.getArrendamientoActual().getDireccionIp().getDireccion()[1]&0xFF) + "." +(cliente.getArrendamientoActual().getDireccionIp().getDireccion()[2] &0xFF)+ "." + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[3]&0xFF));
+        System.out.println("    Hora Inicio: " + cliente.getArrendamientoActual().getHoraInicio());
+        System.out.println("    Hora Revocacion: " + cliente.getArrendamientoActual().getHoraRevocacion());
         if (!cliente.getArrendamientoActual().getDireccionIp().isDisponible()) {
             System.out.println("    Estado: En uso");
         } else {
@@ -676,9 +684,11 @@ public class ServidorDHCP {
         }
     }
 
-    public void actualizarLog(Cliente cliente) throws IOException {
+    public void actualizarLog(Cliente cliente, String mensaje) throws IOException {
+        boolean nuevo=false;
         String texto, mac, ipAsignada;
-        String[] datos = new String[12];
+        String[] datos = new String[14];
+        texto="";
         //Hora de Escritura
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
@@ -692,11 +702,11 @@ public class ServidorDHCP {
         }
         datos[3] = " | ";
         //Mac
-        mac = cliente.getMac()[0] + ":" + cliente.getMac()[1] + ":" + cliente.getMac()[2] + ":" + cliente.getMac()[3];
+        mac = String.format("%02x",cliente.getMac()[0])+":"+String.format("%02x",cliente.getMac()[1])+":"+String.format("%02x",cliente.getMac()[2])+":"+String.format("%02x",cliente.getMac()[3])+":"+String.format("%02x",cliente.getMac()[4])+":"+String.format("%02x",cliente.getMac()[5]);
         datos[4] = mac;
         datos[5] = " | ";
         //IP asignada
-        ipAsignada = cliente.getArrendamientoActual().getDireccionIp().getDireccion()[1] + "." + cliente.getArrendamientoActual().getDireccionIp().getDireccion()[2] + "." + cliente.getArrendamientoActual().getDireccionIp().getDireccion()[3];
+        ipAsignada = (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[0]&0xFF)  + "." +(cliente.getArrendamientoActual().getDireccionIp().getDireccion()[1]&0xFF)  + "." + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[2]&0xFF)  + "." + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[3]&0xFF) ;
         datos[6] = ipAsignada;
         datos[7] = " | ";
         //hora inicio
@@ -704,19 +714,33 @@ public class ServidorDHCP {
         datos[9] = " | ";
         //hora fin
         datos[10] = cliente.getArrendamientoActual().getHoraRevocacion().toString();
-        datos[11] = "\n";
+        datos[11] = " | ";
+        //Estado
+        datos[12]=mensaje;
+        datos[13] = "\n";
         //abrir archivo
         BufferedWriter bw = null;
         FileWriter fw = null;
         File file = new File("RegistroLog.txt");
-        if (!file.exists()) {
-            file.createNewFile();
-            bw.write("Registro:\n");
-        }
         fw = new FileWriter(file.getAbsoluteFile(), true);
         bw = new BufferedWriter(fw);
-        texto = datos.toString();
+        texto = datos[0]+datos[1]+datos[2]+datos[3]+datos[4]+datos[5]+datos[6]+datos[7]+datos[8]+datos[9]+datos[10]+datos[11]+datos[12]+datos[13];
         bw.write(texto);
+        bw.close();
+    }
+
+    private void crearLog() throws IOException {
+        BufferedWriter bw = null;
+        FileWriter fw = null;
+        File file = new File("RegistroLog.txt");
+        if(file.exists()){
+            file.delete();
+        }
+        file.createNewFile();
+        fw = new FileWriter(file.getAbsoluteFile(), true);
+        bw = new BufferedWriter(fw);
+        bw.write("Registro:\n");
+        bw.write(" Fecha-Hora Actual  | Estado |   Direccion Mac   | Direccion IP  |  Inicio Arrendamiento   |    Fin Arrendamiento    | Estado Arriendo \n");
         bw.close();
     }
 }

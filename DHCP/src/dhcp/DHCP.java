@@ -22,7 +22,6 @@ public class DHCP {
      */
     public static void main(String[] args) throws IOException {
         ServidorDHCP servidor=new ServidorDHCP();
-        
         if(!servidor.cofigurar()){
             System.out.println("Error al configurar servidor");
             return;
