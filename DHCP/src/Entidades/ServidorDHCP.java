@@ -138,28 +138,28 @@ public class ServidorDHCP {
                                 }
                             } else { //Si ciaddr no es cero
                                 Arrendamiento arr = null;
-                                for(Pair<byte[], byte[]> p : arrendamientos.keySet()){
-                                    if((p.getKey()[0] == cliente.getMac()[0]) && (p.getKey()[1] == cliente.getMac()[1]) && (p.getKey()[2] == cliente.getMac()[2]) && (p.getKey()[3] == cliente.getMac()[3])){
-                                        if((p.getValue()[0] == pDHCP.getCiaddr()[0]) && (p.getValue()[1] == pDHCP.getCiaddr()[1]) && (p.getValue()[2] == pDHCP.getCiaddr()[2]) && (p.getValue()[3] == pDHCP.getCiaddr()[3])){
-                                           arr = arrendamientos.get(p);
-                                           break;
+                                for (Pair<byte[], byte[]> p : arrendamientos.keySet()) {
+                                    if ((p.getKey()[0] == cliente.getMac()[0]) && (p.getKey()[1] == cliente.getMac()[1]) && (p.getKey()[2] == cliente.getMac()[2]) && (p.getKey()[3] == cliente.getMac()[3])) {
+                                        if ((p.getValue()[0] == pDHCP.getCiaddr()[0]) && (p.getValue()[1] == pDHCP.getCiaddr()[1]) && (p.getValue()[2] == pDHCP.getCiaddr()[2]) && (p.getValue()[3] == pDHCP.getCiaddr()[3])) {
+                                            arr = arrendamientos.get(p);
+                                            break;
                                         }
                                     }
                                 }
-                                if(arr != null){
+                                if (arr != null) {
                                     int extension;
-                                if (pDHCP.getIpAddressLeaseTime() != null) {
-                                    extension = byteArrayToInt(pDHCP.getIpAddressLeaseTime());
-                                } else {
-                                    extension = arr.getTiempoArrendamiento();
-                                }
-                                arr.setHoraRevocacion(LocalDateTime.now().plusSeconds(extension));
-                                cliente.setArrendamientoActual(arr);
-                                PaqueteDHCP rDHCP = crearPaqueteDHCPAck(cliente, pDHCP); //Se crea el paquete DHCPACK
-                                DatagramPacket pRespuesta = obtenerDatagrama(pDHCP, rDHCP); //Se obtiene el datagrama
-                                socket.send(pRespuesta); //Se envía el paquete
-                                imprimirCambio(cliente, "Arriendo extendido");
-                                actualizarLog(cliente, "Arriendo extendido");
+                                    if (pDHCP.getIpAddressLeaseTime() != null) {
+                                        extension = byteArrayToInt(pDHCP.getIpAddressLeaseTime());
+                                    } else {
+                                        extension = arr.getTiempoArrendamiento();
+                                    }
+                                    arr.setHoraRevocacion(LocalDateTime.now().plusSeconds(extension));
+                                    cliente.setArrendamientoActual(arr);
+                                    PaqueteDHCP rDHCP = crearPaqueteDHCPAck(cliente, pDHCP); //Se crea el paquete DHCPACK
+                                    DatagramPacket pRespuesta = obtenerDatagrama(pDHCP, rDHCP); //Se obtiene el datagrama
+                                    socket.send(pRespuesta); //Se envía el paquete
+                                    imprimirCambio(cliente, "Arriendo extendido");
+                                    actualizarLog(cliente, "Arriendo extendido");
                                 }
                             }
 
@@ -188,6 +188,7 @@ public class ServidorDHCP {
 
     }
 
+    /*
     //Obtiene el datagrama DHCP a enviar dado un paquete recibido DHCP y un paquete a enviar rDHCP. Utilizado con mensajes DHCPOFFER y DHCPACK
     private DatagramPacket obtenerDatagrama(PaqueteDHCP pDHCP, PaqueteDHCP rDHCP) throws UnknownHostException {
         byte[] respuesta = rDHCP.construirPaquete();
@@ -209,6 +210,41 @@ public class ServidorDHCP {
             return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getGiaddr()), 67);
         }
     }
+*/
+
+    //Obtiene el datagrama DHCP a enviar dado un paquete recibido DHCP y un paquete a enviar rDHCP. Utilizado con mensajes DHCPOFFER y DHCPACK
+    private DatagramPacket obtenerDatagrama(PaqueteDHCP pDHCP, PaqueteDHCP rDHCP) throws UnknownHostException, IOException {
+        byte[] respuesta = rDHCP.construirPaquete();
+        if ((Byte.toUnsignedInt(pDHCP.getGiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[3]) == 0)) {
+            if ((Byte.toUnsignedInt(pDHCP.getCiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[3]) == 0)) {
+                if (Byte.toUnsignedInt(pDHCP.getFlags()[0]) == 255) {
+                    //Si giaddr y ciaddr son cero y el bit boradcast está en 1, se envía el mensaje a la dirección broadcast
+                    System.out.println("Band 1");
+                    byte[] broadcast = new byte[4];
+                    broadcast[0] = (byte) (255 & 0xff);
+                    broadcast[1] = (byte) (255 & 0xff);
+                    broadcast[2] = (byte) (255 & 0xff);
+                    broadcast[3] = (byte) (255 & 0xff);
+                    return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(broadcast), 68);
+                } else { //Si giaddr y ciaddr son cero, pero el bit boradcast está en 0, se envía el mensaje a la dirección a prestar y a la MAC del cliente
+                    //Agregar en tabla ARP una entrada que relacione a chaddr con yiaddr
+                    Runtime runtime = Runtime.getRuntime();
+                    Process proceso = runtime.exec("arp -s " + Byte.toUnsignedInt(rDHCP.getYiaddr()[0]) + "." + Byte.toUnsignedInt(rDHCP.getYiaddr()[1]) + "." + Byte.toUnsignedInt(rDHCP.getYiaddr()[2]) + "." + Byte.toUnsignedInt(rDHCP.getYiaddr()[3]) + " "
+                            + String.format("%02X", pDHCP.getChaddr()[0]) + "-" + String.format("%02X", pDHCP.getChaddr()[1]) + "-" + String.format("%02X", pDHCP.getChaddr()[2]) + "-" + String.format("%02X", pDHCP.getChaddr()[3]) + "-" + String.format("%02X", pDHCP.getChaddr()[4])
+                            + "-" + String.format("%02X", pDHCP.getChaddr()[5]));
+                    //Enviar a dirección en yiaddr.
+                    return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(rDHCP.getYiaddr()), 68);
+                }
+
+            } else { //Si giaddr es cero y ciaddr no, se envía el mensaje a la dirección en ciaddr
+                System.out.println("Band 2");
+                return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getCiaddr()), 68);
+            }
+        } else { //Si giaddr no es cero, se envía el mensaje al puerto de servidor DHCP de la dirección en ese campo
+            System.out.println("Band 3");
+            return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getGiaddr()), 67);
+        }
+    }
 
     //Obtiene el datagrama DHCP a enviar dado un paquete recibido DHCP y un paquete a enviar rDHCP. Utilizado con mensajes DHCNAK.
     private DatagramPacket obtenerDatagramaNack(PaqueteDHCP pDHCP, PaqueteDHCP rDHCP) throws UnknownHostException {
@@ -221,8 +257,7 @@ public class ServidorDHCP {
             broadcast[2] = (byte) (255 & 0xff);
             broadcast[3] = (byte) (255 & 0xff);
             return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(broadcast), 68);
-        }
-        else{ //Si giaddr no es cero, se envía a giaddr
+        } else { //Si giaddr no es cero, se envía a giaddr
             return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getGiaddr()), 67);
         }
     }
@@ -673,8 +708,8 @@ public class ServidorDHCP {
     public void imprimirCambio(Cliente cliente, String mensaje) {
         System.out.println("----------------------------------------------------");
         System.out.println(mensaje + ":");
-        System.out.println("    Mac: " +String.format("%02x",cliente.getMac()[0])+":"+String.format("%02x",cliente.getMac()[1])+":"+String.format("%02x",cliente.getMac()[2])+":"+String.format("%02x",cliente.getMac()[3])+":"+String.format("%02x",cliente.getMac()[4])+":"+String.format("%02x",cliente.getMac()[5]));
-        System.out.println("    Ip Asignada: " + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[0]&0xFF) + "." +(cliente.getArrendamientoActual().getDireccionIp().getDireccion()[1]&0xFF) + "." +(cliente.getArrendamientoActual().getDireccionIp().getDireccion()[2] &0xFF)+ "." + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[3]&0xFF));
+        System.out.println("    Mac: " + String.format("%02x", cliente.getMac()[0]) + ":" + String.format("%02x", cliente.getMac()[1]) + ":" + String.format("%02x", cliente.getMac()[2]) + ":" + String.format("%02x", cliente.getMac()[3]) + ":" + String.format("%02x", cliente.getMac()[4]) + ":" + String.format("%02x", cliente.getMac()[5]));
+        System.out.println("    Ip Asignada: " + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[0] & 0xFF) + "." + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[1] & 0xFF) + "." + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[2] & 0xFF) + "." + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[3] & 0xFF));
         System.out.println("    Hora Inicio: " + cliente.getArrendamientoActual().getHoraInicio());
         System.out.println("    Hora Revocacion: " + cliente.getArrendamientoActual().getHoraRevocacion());
         if (!cliente.getArrendamientoActual().getDireccionIp().isDisponible()) {
@@ -685,10 +720,10 @@ public class ServidorDHCP {
     }
 
     public void actualizarLog(Cliente cliente, String mensaje) throws IOException {
-        boolean nuevo=false;
+        boolean nuevo = false;
         String texto, mac, ipAsignada;
         String[] datos = new String[14];
-        texto="";
+        texto = "";
         //Hora de Escritura
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
@@ -702,11 +737,11 @@ public class ServidorDHCP {
         }
         datos[3] = " | ";
         //Mac
-        mac = String.format("%02x",cliente.getMac()[0])+":"+String.format("%02x",cliente.getMac()[1])+":"+String.format("%02x",cliente.getMac()[2])+":"+String.format("%02x",cliente.getMac()[3])+":"+String.format("%02x",cliente.getMac()[4])+":"+String.format("%02x",cliente.getMac()[5]);
+        mac = String.format("%02x", cliente.getMac()[0]) + ":" + String.format("%02x", cliente.getMac()[1]) + ":" + String.format("%02x", cliente.getMac()[2]) + ":" + String.format("%02x", cliente.getMac()[3]) + ":" + String.format("%02x", cliente.getMac()[4]) + ":" + String.format("%02x", cliente.getMac()[5]);
         datos[4] = mac;
         datos[5] = " | ";
         //IP asignada
-        ipAsignada = (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[0]&0xFF)  + "." +(cliente.getArrendamientoActual().getDireccionIp().getDireccion()[1]&0xFF)  + "." + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[2]&0xFF)  + "." + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[3]&0xFF) ;
+        ipAsignada = (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[0] & 0xFF) + "." + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[1] & 0xFF) + "." + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[2] & 0xFF) + "." + (cliente.getArrendamientoActual().getDireccionIp().getDireccion()[3] & 0xFF);
         datos[6] = ipAsignada;
         datos[7] = " | ";
         //hora inicio
@@ -716,7 +751,7 @@ public class ServidorDHCP {
         datos[10] = cliente.getArrendamientoActual().getHoraRevocacion().toString();
         datos[11] = " | ";
         //Estado
-        datos[12]=mensaje;
+        datos[12] = mensaje;
         datos[13] = "\n";
         //abrir archivo
         BufferedWriter bw = null;
@@ -724,7 +759,7 @@ public class ServidorDHCP {
         File file = new File("RegistroLog.txt");
         fw = new FileWriter(file.getAbsoluteFile(), true);
         bw = new BufferedWriter(fw);
-        texto = datos[0]+datos[1]+datos[2]+datos[3]+datos[4]+datos[5]+datos[6]+datos[7]+datos[8]+datos[9]+datos[10]+datos[11]+datos[12]+datos[13];
+        texto = datos[0] + datos[1] + datos[2] + datos[3] + datos[4] + datos[5] + datos[6] + datos[7] + datos[8] + datos[9] + datos[10] + datos[11] + datos[12] + datos[13];
         bw.write(texto);
         bw.close();
     }
@@ -733,7 +768,7 @@ public class ServidorDHCP {
         BufferedWriter bw = null;
         FileWriter fw = null;
         File file = new File("RegistroLog.txt");
-        if(file.exists()){
+        if (file.exists()) {
             file.delete();
         }
         file.createNewFile();
