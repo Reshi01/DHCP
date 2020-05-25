@@ -79,7 +79,7 @@ public class ServidorDHCP {
                             PaqueteDHCP rDHCP = crearPaqueteDHCPOffer(cliente, pDHCP);
                             DatagramPacket pRespuesta = obtenerDatagrama(pDHCP, rDHCP); //Se obtiene el datagrama
                             socket.send(pRespuesta); //Se envía el paquete
-
+                            System.out.println("Oferta realizada");
                         } else if (tipoM == 3) { //Si el mensaje recibido es DHCPREQUEST
                             if (pDHCP.getServerIdentifier() != null) { //Si está la opción Server Identifier
                                 byte[] bytesIp = ip.getAddress();
@@ -113,6 +113,7 @@ public class ServidorDHCP {
                                     }
                                 } else { //Se elmina la oferta si no fue aceptada.
                                     if (dOferta != null) {
+                                        System.out.println("Oferta removida");
                                         ofertas.remove(dOferta);
                                     }
                                 }
@@ -549,6 +550,7 @@ public class ServidorDHCP {
         BufferedReader lector = new BufferedReader(file);
         //se leen e imprimen las lineas del texto
         System.out.println("Iniciando Configuracion");
+        System.out.println("Parametros de Configuracion:");
         while ((aux = lector.readLine()) != null) {
             System.out.println(aux);
             datos = aux.split(" ");

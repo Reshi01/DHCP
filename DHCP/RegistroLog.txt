@@ -1,5 +1,2 @@
 Registro:
  Fecha-Hora Actual  | Estado |   Direccion Mac   | Direccion IP  |  Inicio Arrendamiento   |    Fin Arrendamiento    | Estado Arriendo 
-2020/05/25 12:34:06 | En Uso | 9c:5c:f9:da:10:9f | 192.168.0.190 | 2020-05-25T12:34:06.209 | 2020-05-25T12:35:06.210 | Arriendo realizado
-2020/05/25 12:34:36 | En Uso | 9c:5c:f9:da:10:9f | 192.168.0.190 | 2020-05-25T12:34:06.209 | 2020-05-25T12:35:36.769 | Arriendo extendido
-2020/05/25 12:34:45 | En Uso | 34:51:c9:93:8e:fa | 192.168.0.191 | 2020-05-25T12:34:45.286 | 2020-08-23T12:34:45.287 | Arriendo realizado
