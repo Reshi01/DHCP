@@ -171,6 +171,8 @@ public class ServidorDHCP {
                                 arr.getDireccionIp().setDisponible(true);
                                 cliente.setArrendamientoAnterior(cliente.getArrendamientoActual());
                                 cliente.setArrendamientoActual(null);
+                                imprimirCambio(cliente, "Arriendo liberado");
+                                actualizarLog(cliente, "Arriendo liberado");
                                 //Matar hilo
                             }
                         }
