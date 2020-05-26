@@ -26,7 +26,9 @@ public class DHCP {
             System.out.println("Error al configurar servidor");
             return;
         }
+        System.out.println("");
         System.out.println("Iniciando Ejecucion del Servidor");
+                System.out.println("");
         servidor.correrServidor();
     }
     

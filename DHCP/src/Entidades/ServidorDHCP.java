@@ -86,7 +86,7 @@ public class ServidorDHCP {
                         arr = arrendamientos.get(p);
                         if(arr.isVigente()){
                             nuevo = LocalDateTime.now();
-                            if (nuevo.isAfter(arr.getHoraRevocacion().minusSeconds(50))) {
+                            if (nuevo.isAfter(arr.getHoraRevocacion())) {
                                 try {
                                     revocarArrendamiento(arr);
                                 } catch (IOException ex) {
@@ -110,11 +110,11 @@ public class ServidorDHCP {
                 socket.receive(dRecibido);
                 pDHCP = new PaqueteDHCP(bytesR);
 
-                //IMPRESIONES PARA DEPURAR
-                System.out.println("");
-                System.out.println("Mensaje Recibido:");
-                System.out.println("Message Type: " + Byte.toUnsignedInt(pDHCP.getMessageType()));
-                //FIN IMPRESIONES
+//                //IMPRESIONES PARA DEPURAR
+//                System.out.println("");
+//                System.out.println("Mensaje Recibido:");
+//                System.out.println("Message Type: " + Byte.toUnsignedInt(pDHCP.getMessageType()));
+//                //FIN IMPRESIONES
 
                 //Se revisa que sea BOOTREQUEST
                 if (Byte.toUnsignedInt(pDHCP.getOp()) == 1) {
@@ -127,6 +127,7 @@ public class ServidorDHCP {
                             PaqueteDHCP rDHCP = crearPaqueteDHCPOffer(cliente, pDHCP);
                             DatagramPacket pRespuesta = obtenerDatagrama(pDHCP, rDHCP); //Se obtiene el datagrama
                             socket.send(pRespuesta); //Se envía el paquete
+                            System.out.println("----------------------------------------------------");
                             System.out.println("Oferta realizada");
                         } else if (tipoM == 3) { //Si el mensaje recibido es DHCPREQUEST
                             if (pDHCP.getServerIdentifier() != null) { //Si está la opción Server Identifier
@@ -162,6 +163,7 @@ public class ServidorDHCP {
                                 } else { //Se elmina la oferta si no fue aceptada.
                                     if (dOferta != null) {
                                         ofertas.remove(dOferta);
+                                        System.out.println("----------------------------------------------------");
                                         System.out.println("Oferta removida");
                                     }
                                 }
@@ -254,7 +256,6 @@ public class ServidorDHCP {
         if ((Byte.toUnsignedInt(pDHCP.getGiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[3]) == 0)) {
             if ((Byte.toUnsignedInt(pDHCP.getCiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[3]) == 0)) {
                 //Si giaddr y ciaddr son cero, se envía el mensaje a la dirección broadcast
-                System.out.println("Band 1");
                 byte[] broadcast = new byte[4];
                 broadcast[0] = (byte) (255 & 0xff);
                 broadcast[1] = (byte) (255 & 0xff);
@@ -265,7 +266,6 @@ public class ServidorDHCP {
                 return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getCiaddr()), 68);
             }
         } else { //Si giaddr no es cero, se envía el mensaje al puerto de servidor DHCP de la dirección en ese campo
-            System.out.println("Band 3");
             return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getGiaddr()), 67);
         }
     }
@@ -471,8 +471,10 @@ public class ServidorDHCP {
         }
         //En caso contrario, imprimir mensaje de error y termina
         if (!direccionAsignada) {
+            System.out.println("----------------------------------------------------");
             System.out.println("No se encontro una direccion disponible: " + (cliente.getMac()[0] & 0xFF) + "." + (cliente.getMac()[1] & 0xFF) + "." + (cliente.getMac()[2] & 0xFF) + "." + (cliente.getMac()[3] & 0xFF) + "." + (cliente.getMac()[4] & 0xFF) + "." + (cliente.getMac()[5] & 0xFF));
             System.out.println("En la subred: " + (cliente.getSubred().getDireccionIp()[0] & 0xFF) + "." + (cliente.getSubred().getDireccionIp()[1] & 0xFF) + "." + (cliente.getSubred().getDireccionIp()[2] & 0xFF) + "." + (cliente.getSubred().getDireccionIp()[3] & 0xFF));
+            System.out.println("----------------------------------------------------");
             return null;
         }
         //Se configuran los parametros del mensaje
@@ -624,7 +626,6 @@ public class ServidorDHCP {
         }
         crearLog();
         System.out.println("Configuracion realizada con exito");
-        System.out.println("");
         return true;
     }
 
