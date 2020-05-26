@@ -176,9 +176,9 @@ public class ServidorDHCP {
                             if (arr != null) {
                                 arr.setVigente(false);
                                 cliente.setArrendamientoActual(arr);
+                                arr.getDireccionIp().setDisponible(true);
                                 imprimirCambio(cliente, "Arriendo liberado");
                                 actualizarLog(cliente, "Arriendo liberado");
-                                arr.getDireccionIp().setDisponible(true);
                                 cliente.setArrendamientoAnterior(cliente.getArrendamientoActual());
                                 cliente.setArrendamientoActual(null);
                                 //Matar hilo
@@ -745,7 +745,7 @@ public class ServidorDHCP {
         if (!cliente.getArrendamientoActual().getDireccionIp().isDisponible()) {
             datos[2] = "En Uso";
         } else {
-            datos[2] = "Libre";
+            datos[2] = "Libre ";
         }
         datos[3] = " | ";
         //Mac
