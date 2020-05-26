@@ -113,8 +113,8 @@ public class ServidorDHCP {
                                     }
                                 } else { //Se elmina la oferta si no fue aceptada.
                                     if (dOferta != null) {
-                                        System.out.println("Oferta removida");
                                         ofertas.remove(dOferta);
+                                        System.out.println("Oferta removida");
                                     }
                                 }
                             } else if ((Byte.toUnsignedInt(pDHCP.getCiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[3]) == 0)) {
@@ -777,7 +777,7 @@ public class ServidorDHCP {
         fw = new FileWriter(file.getAbsoluteFile(), true);
         bw = new BufferedWriter(fw);
         bw.write("Registro:\n");
-        bw.write(" Fecha-Hora Actual  | Estado |   Direccion Mac   | Direccion IP  |  Inicio Arrendamiento   |    Fin Arrendamiento    | Estado Arriendo \n");
+        bw.write(" Fecha-Hora Actual  | Estado |   Direccion Mac   | Direccion IP |  Inicio Arrendamiento   |    Fin Arrendamiento    | Estado Arriendo \n");
         bw.close();
     }
 }
