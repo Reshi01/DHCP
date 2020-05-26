@@ -23,6 +23,7 @@ public class Arrendamiento {
     //parametrod de configuracion
     private ArrayList<byte[]> gateway;
     private ArrayList<byte[]> dns;
+    private PaqueteDHCP solicitud;
 
     public Arrendamiento() {
         vigente=false;
@@ -101,6 +102,14 @@ public class Arrendamiento {
 
     public void setTiempoArrendamiento(int tiempoArrendamiento) {
         this.tiempoArrendamiento = tiempoArrendamiento;
+    }
+
+    public PaqueteDHCP getSolicitud() {
+        return solicitud;
+    }
+
+    public void setSolicitud(PaqueteDHCP solicitud) {
+        this.solicitud = solicitud;
     }
     
     

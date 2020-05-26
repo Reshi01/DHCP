@@ -12,6 +12,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import static java.lang.Thread.sleep;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -23,9 +24,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javafx.concurrent.Task;
 import javafx.util.Pair;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -48,22 +49,20 @@ public class ServidorDHCP {
         subredes = new ArrayList<>();
         clientes = new HashMap<Pair<Integer, byte[]>, Cliente>();
         arrendamientos = new HashMap<Pair<byte[], byte[]>, Arrendamiento>();
-        ofertas = new HashMap<DireccionIP, Arrendamiento>();
+        ofertas = new ConcurrentHashMap<DireccionIP, Arrendamiento>();
     }
 
     private void revocarArrendamiento(Arrendamiento arr) throws IOException {
-        byte[] bytesR = new byte[65535];
-        PaqueteDHCP pDHCP = new PaqueteDHCP(bytesR);
         arr.setVigente(false);
         Cliente cliente = arr.getCliente();
         cliente.setArrendamientoActual(arr);
         arr.getDireccionIp().setDisponible(true);
-        imprimirCambio(cliente, "Arriendo liberado");
-        actualizarLog(cliente, "Arriendo liberado");
+        imprimirCambio(cliente, "Arriendo revocado");
+        actualizarLog(cliente, "Arriendo revocado");
         cliente.setArrendamientoAnterior(cliente.getArrendamientoActual());
         cliente.setArrendamientoActual(null);
-        PaqueteDHCP rDHCP = crearPaqueteDHCPNack(cliente, pDHCP); //Se crea el paquete DHCPNAK
-        DatagramPacket pRespuesta = obtenerDatagramaNack(pDHCP, rDHCP); //Se obtiene el datagrama
+        PaqueteDHCP rDHCP = crearPaqueteDHCPNack(cliente, arr.getSolicitud()); //Se crea el paquete DHCPNAK
+        DatagramPacket pRespuesta = obtenerDatagramaNack(arr.getSolicitud(), rDHCP); //Se obtiene el datagrama
         socket.send(pRespuesta); //Se envía el paquete
     }
 
@@ -75,25 +74,33 @@ public class ServidorDHCP {
         Runnable runnable = () -> {
             Arrendamiento arr = null;
             LocalDateTime nuevo = null;
-            System.out.flush();
-            System.out.println("holi");
-            System.out.flush();
             while (true) {
+                System.out.flush();
                 if (!arrendamientos.isEmpty()) {
                     for (Pair<byte[], byte[]> p : arrendamientos.keySet()) {
-                        arr = arrendamientos.get(p);
-                        nuevo = arr.getHoraInicio().plusSeconds(arr.getTiempoArrendamiento());
-                        if (nuevo.isBefore(arr.getHoraRevocacion().minusSeconds((long) 30))) {
-                            //revocarArrendamiento(arr);
+                        try {
+                            sleep((long)100);
+                        } catch (InterruptedException ex) {
+                            Logger.getLogger(ServidorDHCP.class.getName()).log(Level.SEVERE, null, ex);
                         }
+                        arr = arrendamientos.get(p);
+                        if(arr.isVigente()){
+                            nuevo = LocalDateTime.now();
+                            if (nuevo.isAfter(arr.getHoraRevocacion().minusSeconds(50))) {
+                                try {
+                                    revocarArrendamiento(arr);
+                                } catch (IOException ex) {
+                                    Logger.getLogger(ServidorDHCP.class.getName()).log(Level.SEVERE, null, ex);
+                                }
+                            }
+                        } 
                     }
                 }
             }
         };
-        System.out.println("oooo");
         hilo = new Thread(runnable);
         hilo.setDaemon(true);
-        hilo.run();
+        hilo.start();
         //Fin Hilo
         try {
             ip = InetAddress.getLocalHost();
@@ -510,6 +517,10 @@ public class ServidorDHCP {
             nuevoArrendamiento.setGateway(cliente.getSubred().getGateway());
             this.ofertas.put(nuevoArrendamiento.getDireccionIp(), nuevoArrendamiento);
         }
+        //Guardar mensaje como solicitud
+        PaqueteDHCP solicitud=new PaqueteDHCP();
+        solicitud=paqueteDiscover;
+        nuevoArrendamiento.setSolicitud(solicitud);
         return paqueteOffer;
     }
 
@@ -558,7 +569,7 @@ public class ServidorDHCP {
         paqueteNack.setXid(paqueteRequest.getXid());
         byte[] aux = new byte[2];
         paqueteNack.setSecs(aux);
-        byte[] aux2 = new byte[2];
+        byte[] aux2 = new byte[4];
         paqueteNack.setCiaddr(aux2);
         byte[] aux3 = new byte[4];
         paqueteNack.setYiaddr(aux3);
