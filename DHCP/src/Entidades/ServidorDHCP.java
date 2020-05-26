@@ -24,7 +24,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.util.Pair;
@@ -49,7 +48,7 @@ public class ServidorDHCP {
         subredes = new ArrayList<>();
         clientes = new HashMap<Pair<Integer, byte[]>, Cliente>();
         arrendamientos = new HashMap<Pair<byte[], byte[]>, Arrendamiento>();
-        ofertas = new ConcurrentHashMap<DireccionIP, Arrendamiento>();
+        ofertas = new HashMap<DireccionIP, Arrendamiento>();
     }
 
     private void revocarArrendamiento(Arrendamiento arr) throws IOException {
