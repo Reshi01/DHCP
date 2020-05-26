@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.concurrent.Task;
 import javafx.util.Pair;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -48,11 +49,54 @@ public class ServidorDHCP {
         arrendamientos = new HashMap<Pair<byte[], byte[]>, Arrendamiento>();
         ofertas = new HashMap<DireccionIP, Arrendamiento>();
     }
+    
+    Task task = new Task<Void>() {
+        @Override protected Void call() throws Exception {
+            Arrendamiento arr=null;
+            LocalDateTime nuevo=null;
+            System.out.println("holi");
+            while(true){
+                if(!arrendamientos.isEmpty()){
+                    for (Pair<byte[], byte[]> p : arrendamientos.keySet()){
+                        arr = arrendamientos.get(p);
+                        nuevo=arr.getHoraInicio().plusSeconds(arr.getTiempoArrendamiento());
+                        if(nuevo.isBefore(arr.getHoraRevocacion().minusSeconds((long)30))){
+                            revocarArrendamiento(arr);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void revocarArrendamiento(Arrendamiento arr) throws IOException {
+            byte[] bytesR = new byte[65535];
+            PaqueteDHCP pDHCP = new PaqueteDHCP(bytesR);
+            arr.setVigente(false);
+            Cliente cliente=arr.getCliente();
+            cliente.setArrendamientoActual(arr);
+            arr.getDireccionIp().setDisponible(true);
+            imprimirCambio(cliente, "Arriendo liberado");
+            actualizarLog(cliente, "Arriendo liberado");
+            cliente.setArrendamientoAnterior(cliente.getArrendamientoActual());
+            cliente.setArrendamientoActual(null);
+            PaqueteDHCP rDHCP = crearPaqueteDHCPNack(cliente, pDHCP); //Se crea el paquete DHCPNAK
+            DatagramPacket pRespuesta = obtenerDatagramaNack(pDHCP, rDHCP); //Se obtiene el datagrama
+            socket.send(pRespuesta); //Se envía el paquete
+        }
+    };
 
     public void correrServidor() {
         byte[] bytesR = new byte[65535];
         DatagramPacket dRecibido;
         PaqueteDHCP pDHCP;
+        //Hilo
+        Thread hilo;
+        System.out.println("oooo");
+        hilo = new Thread(task);
+        hilo.setDaemon(true);
+        hilo.start();
+        task.run();
+        //Fin Hilo
         try {
             ip = InetAddress.getLocalHost();
             socket = new DatagramSocket(67);
@@ -66,7 +110,7 @@ public class ServidorDHCP {
                 System.out.println("Mensaje Recibido:");
                 System.out.println("Message Type: " + Byte.toUnsignedInt(pDHCP.getMessageType()));
                 //FIN IMPRESIONES
-
+                
                 //Se revisa que sea BOOTREQUEST
                 if (Byte.toUnsignedInt(pDHCP.getOp()) == 1) {
                     //Se obtiene el cliente que envió el mensaje
@@ -199,7 +243,6 @@ public class ServidorDHCP {
 
     }
 
-    
     //Obtiene el datagrama DHCP a enviar dado un paquete recibido DHCP y un paquete a enviar rDHCP. Utilizado con mensajes DHCPOFFER y DHCPACK
     private DatagramPacket obtenerDatagrama(PaqueteDHCP pDHCP, PaqueteDHCP rDHCP) throws UnknownHostException {
         byte[] respuesta = rDHCP.construirPaquete();
@@ -222,8 +265,7 @@ public class ServidorDHCP {
         }
     }
 
-
-    //Obtiene el datagrama DHCP a enviar dado un paquete recibido DHCP y un paquete a enviar rDHCP. Utilizado con mensajes DHCPOFFER y DHCPACK
+//    //Obtiene el datagrama DHCP a enviar dado un paquete recibido DHCP y un paquete a enviar rDHCP. Utilizado con mensajes DHCPOFFER y DHCPACK
 //    private DatagramPacket obtenerDatagrama(PaqueteDHCP pDHCP, PaqueteDHCP rDHCP) throws UnknownHostException, IOException {
 //        byte[] respuesta = rDHCP.construirPaquete();
 //        if ((Byte.toUnsignedInt(pDHCP.getGiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[3]) == 0)) {
