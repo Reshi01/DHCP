@@ -136,6 +136,7 @@ public class ServidorDHCP {
                                 byte[] dSolicitada = pDHCP.getRequestedIpAddress();
                                 DireccionIP dOferta = null;
                                 //Se busca la oferta correspondiente
+                                actualizarOfertas();
                                 for (DireccionIP d : ofertas.keySet()) {
                                     byte[] dir = d.getDireccion();
                                     if ((dSolicitada[0] == dir[0]) && (dSolicitada[1] == dir[1]) && (dSolicitada[2] == dir[2]) && (dSolicitada[3] == dir[3])) {
@@ -427,6 +428,8 @@ public class ServidorDHCP {
         boolean direccionAsignada = false, igual = true, nuevo = true;
         PaqueteDHCP paqueteOffer = new PaqueteDHCP();
         Arrendamiento nuevoArrendamiento = new Arrendamiento();
+        //Se actualizan las ofertas
+        actualizarOfertas();
         //Se selecciona una direccion ip para prestar
         //Si el cliente tiene una dirección actualmente prestada, escoger esa. 
         if (cliente.getArrendamientoActual() != null && this.ofertas.get(cliente.getArrendamientoActual().getDireccionIp()) == null) {
@@ -517,6 +520,7 @@ public class ServidorDHCP {
             nuevoArrendamiento.setMascara(cliente.getSubred().getMascaraRed());
             nuevoArrendamiento.setDns(cliente.getSubred().getDns());
             nuevoArrendamiento.setGateway(cliente.getSubred().getGateway());
+            nuevoArrendamiento.setHoraRevocacion(LocalDateTime.now().plusMinutes(1)); //Hora de vencimiento de oferta.
             this.ofertas.put(nuevoArrendamiento.getDireccionIp(), nuevoArrendamiento);
         }
         //Guardar mensaje como solicitud
@@ -626,6 +630,7 @@ public class ServidorDHCP {
         }
         crearLog();
         System.out.println("Configuracion realizada con exito");
+        System.out.println("");
         return true;
     }
 
@@ -840,5 +845,18 @@ public class ServidorDHCP {
         bw.write("Registro:\n");
         bw.write(" Fecha-Hora Actual  | Estado |   Direccion Mac   | Direccion IP |  Inicio Arrendamiento   |    Fin Arrendamiento    | Estado Arriendo \n");
         bw.close();
+    }
+    
+    private void actualizarOfertas(){
+        ArrayList<DireccionIP> eliminar = new ArrayList<>();
+        for(DireccionIP d : ofertas.keySet()){
+            Arrendamiento arr = ofertas.get(d);
+            if(arr.getHoraRevocacion().isBefore(LocalDateTime.now())){
+                eliminar.add(d);
+            }
+        }
+        for(DireccionIP d : eliminar){
+            ofertas.remove(d);
+        }
     }
 }
