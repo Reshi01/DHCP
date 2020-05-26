@@ -42,6 +42,7 @@ public class ServidorDHCP {
     private Map<Pair<Integer, byte[]>, Cliente> clientes;
     private Map<Pair<byte[], byte[]>, Arrendamiento> arrendamientos;
     private Map<DireccionIP, Arrendamiento> ofertas;
+    private Thread hilo;
 
     public ServidorDHCP() {
         subredes = new ArrayList<>();
@@ -49,53 +50,50 @@ public class ServidorDHCP {
         arrendamientos = new HashMap<Pair<byte[], byte[]>, Arrendamiento>();
         ofertas = new HashMap<DireccionIP, Arrendamiento>();
     }
-    
-    Task task = new Task<Void>() {
-        @Override protected Void call() throws Exception {
-            Arrendamiento arr=null;
-            LocalDateTime nuevo=null;
-            System.out.println("holi");
-            while(true){
-                if(!arrendamientos.isEmpty()){
-                    for (Pair<byte[], byte[]> p : arrendamientos.keySet()){
-                        arr = arrendamientos.get(p);
-                        nuevo=arr.getHoraInicio().plusSeconds(arr.getTiempoArrendamiento());
-                        if(nuevo.isBefore(arr.getHoraRevocacion().minusSeconds((long)30))){
-                            revocarArrendamiento(arr);
-                        }
-                    }
-                }
-            }
-        }
 
-        private void revocarArrendamiento(Arrendamiento arr) throws IOException {
-            byte[] bytesR = new byte[65535];
-            PaqueteDHCP pDHCP = new PaqueteDHCP(bytesR);
-            arr.setVigente(false);
-            Cliente cliente=arr.getCliente();
-            cliente.setArrendamientoActual(arr);
-            arr.getDireccionIp().setDisponible(true);
-            imprimirCambio(cliente, "Arriendo liberado");
-            actualizarLog(cliente, "Arriendo liberado");
-            cliente.setArrendamientoAnterior(cliente.getArrendamientoActual());
-            cliente.setArrendamientoActual(null);
-            PaqueteDHCP rDHCP = crearPaqueteDHCPNack(cliente, pDHCP); //Se crea el paquete DHCPNAK
-            DatagramPacket pRespuesta = obtenerDatagramaNack(pDHCP, rDHCP); //Se obtiene el datagrama
-            socket.send(pRespuesta); //Se envía el paquete
-        }
-    };
+    private void revocarArrendamiento(Arrendamiento arr) throws IOException {
+        byte[] bytesR = new byte[65535];
+        PaqueteDHCP pDHCP = new PaqueteDHCP(bytesR);
+        arr.setVigente(false);
+        Cliente cliente = arr.getCliente();
+        cliente.setArrendamientoActual(arr);
+        arr.getDireccionIp().setDisponible(true);
+        imprimirCambio(cliente, "Arriendo liberado");
+        actualizarLog(cliente, "Arriendo liberado");
+        cliente.setArrendamientoAnterior(cliente.getArrendamientoActual());
+        cliente.setArrendamientoActual(null);
+        PaqueteDHCP rDHCP = crearPaqueteDHCPNack(cliente, pDHCP); //Se crea el paquete DHCPNAK
+        DatagramPacket pRespuesta = obtenerDatagramaNack(pDHCP, rDHCP); //Se obtiene el datagrama
+        socket.send(pRespuesta); //Se envía el paquete
+    }
 
     public void correrServidor() {
         byte[] bytesR = new byte[65535];
         DatagramPacket dRecibido;
         PaqueteDHCP pDHCP;
         //Hilo
-        Thread hilo;
+        Runnable runnable = () -> {
+            Arrendamiento arr = null;
+            LocalDateTime nuevo = null;
+            System.out.flush();
+            System.out.println("holi");
+            System.out.flush();
+            while (true) {
+                if (!arrendamientos.isEmpty()) {
+                    for (Pair<byte[], byte[]> p : arrendamientos.keySet()) {
+                        arr = arrendamientos.get(p);
+                        nuevo = arr.getHoraInicio().plusSeconds(arr.getTiempoArrendamiento());
+                        if (nuevo.isBefore(arr.getHoraRevocacion().minusSeconds((long) 30))) {
+                            //revocarArrendamiento(arr);
+                        }
+                    }
+                }
+            }
+        };
         System.out.println("oooo");
-        hilo = new Thread(task);
+        hilo = new Thread(runnable);
         hilo.setDaemon(true);
-        hilo.start();
-        task.run();
+        hilo.run();
         //Fin Hilo
         try {
             ip = InetAddress.getLocalHost();
@@ -110,7 +108,7 @@ public class ServidorDHCP {
                 System.out.println("Mensaje Recibido:");
                 System.out.println("Message Type: " + Byte.toUnsignedInt(pDHCP.getMessageType()));
                 //FIN IMPRESIONES
-                
+
                 //Se revisa que sea BOOTREQUEST
                 if (Byte.toUnsignedInt(pDHCP.getOp()) == 1) {
                     //Se obtiene el cliente que envió el mensaje
@@ -298,7 +296,6 @@ public class ServidorDHCP {
 //            return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getGiaddr()), 67);
 //        }
 //    }
-
     //Obtiene el datagrama DHCP a enviar dado un paquete recibido DHCP y un paquete a enviar rDHCP. Utilizado con mensajes DHCNAK.
     private DatagramPacket obtenerDatagramaNack(PaqueteDHCP pDHCP, PaqueteDHCP rDHCP) throws UnknownHostException {
         byte[] respuesta = rDHCP.construirPaquete();
