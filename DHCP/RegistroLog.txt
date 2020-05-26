@@ -1,6 +1,3 @@
 Registro:
  Fecha-Hora Actual  | Estado |   Direccion Mac   | Direccion IP |  Inicio Arrendamiento   |    Fin Arrendamiento    | Estado Arriendo 
-2020/05/25 20:25:58 | En Uso | 00:28:f8:0c:9b:67 | 192.168.0.16 | 2020-05-25T20:25:58.974 | 2020-05-25T20:27:28.974 | Arriendo realizado
-2020/05/25 20:26:09 | Libre  | 00:28:f8:0c:9b:67 | 192.168.0.16 | 2020-05-25T20:25:58.974 | 2020-05-25T20:27:28.974 | Arriendo liberado
-2020/05/25 20:26:14 | En Uso | 00:28:f8:0c:9b:67 | 192.168.0.16 | 2020-05-25T20:26:14.162 | 2020-05-25T20:27:44.162 | Arriendo realizado
-2020/05/25 20:26:19 | Libre  | 00:28:f8:0c:9b:67 | 192.168.0.16 | 2020-05-25T20:26:14.162 | 2020-05-25T20:27:44.162 | Arriendo liberado
+2020/05/25 21:21:02 | En Uso | 9c:5c:f9:da:10:9f | 192.168.0.12 | 2020-05-25T21:21:02.800 | 2020-05-25T21:22:32.800 | Arriendo realizado
