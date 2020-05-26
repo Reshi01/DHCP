@@ -64,7 +64,6 @@ public class ServidorDHCP {
                 //IMPRESIONES PARA DEPURAR
                 System.out.println("");
                 System.out.println("Mensaje Recibido:");
-                System.out.println("op:" + Byte.toUnsignedInt(pDHCP.getOp()));
                 System.out.println("Message Type: " + Byte.toUnsignedInt(pDHCP.getMessageType()));
                 //FIN IMPRESIONES
 
@@ -165,14 +164,23 @@ public class ServidorDHCP {
                             }
 
                         } else if (tipoM == 7) { //Si el mensaje recibido es DHCPRELEASE
-                            Arrendamiento arr = arrendamientos.get(new Pair(cliente.getMac(), pDHCP.getCiaddr()));
+                            Arrendamiento arr = null;
+                            for (Pair<byte[], byte[]> p : arrendamientos.keySet()) {
+                                if ((p.getKey()[0] == cliente.getMac()[0]) && (p.getKey()[1] == cliente.getMac()[1]) && (p.getKey()[2] == cliente.getMac()[2]) && (p.getKey()[3] == cliente.getMac()[3])) {
+                                    if ((p.getValue()[0] == pDHCP.getCiaddr()[0]) && (p.getValue()[1] == pDHCP.getCiaddr()[1]) && (p.getValue()[2] == pDHCP.getCiaddr()[2]) && (p.getValue()[3] == pDHCP.getCiaddr()[3])) {
+                                        arr = arrendamientos.get(p);
+                                        break;
+                                    }
+                                }
+                            }
                             if (arr != null) {
                                 arr.setVigente(false);
+                                cliente.setArrendamientoActual(arr);
+                                imprimirCambio(cliente, "Arriendo liberado");
+                                actualizarLog(cliente, "Arriendo liberado");
                                 arr.getDireccionIp().setDisponible(true);
                                 cliente.setArrendamientoAnterior(cliente.getArrendamientoActual());
                                 cliente.setArrendamientoActual(null);
-                                imprimirCambio(cliente, "Arriendo liberado");
-                                actualizarLog(cliente, "Arriendo liberado");
                                 //Matar hilo
                             }
                         }
