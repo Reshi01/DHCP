@@ -9,15 +9,15 @@ import java.util.ArrayList;
 
 /**
  *
- * @author Danny
+ * Realizado por Daniel Hernández y Juan Carlos Suárez.
  */
 public class Subred {
-    private byte[] direccionIp;
-    private byte[] mascaraRed;
-    private int tiempoArrendamiento;
-    private ArrayList<byte[]> gateway;
-    private ArrayList<byte[]> dns;
-    private ArrayList<DireccionIP> direcciones;
+    private byte[] direccionIp; //Dirección IP de la subred
+    private byte[] mascaraRed; //Máscara de red de la subred
+    private int tiempoArrendamiento; //Tiempo de arrendamiento por defecto para la subred
+    private ArrayList<byte[]> gateway; //Lista de gateways para la subred
+    private ArrayList<byte[]> dns; //Lista de dns para la subred
+    private ArrayList<DireccionIP> direcciones; //Lista de direcciones IP disponibles en la subred
 
     public Subred() {
         direccionIp=new byte[4];

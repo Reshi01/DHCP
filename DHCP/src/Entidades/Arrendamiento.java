@@ -10,20 +10,20 @@ import java.util.ArrayList;
 
 /**
  *
- * @author Danny
+ * Realizado por Daniel Hernández y Juan Carlos Suárez.
  */
 public class Arrendamiento {
-    private boolean vigente;
-    private int tiempoArrendamiento;
-    private DireccionIP direccionIp;
-    private Cliente cliente;
-    private LocalDateTime horaInicio;
-    private LocalDateTime horaRevocacion;
-    private byte[] mascara;
-    //parametrod de configuracion
-    private ArrayList<byte[]> gateway;
-    private ArrayList<byte[]> dns;
-    private PaqueteDHCP solicitud;
+    private boolean vigente; //Booleano que indica si el arrendamiento está vigente.
+    private int tiempoArrendamiento; //Tiempo de arrendamiento.
+    private DireccionIP direccionIp; //Dirección IP arrendada..
+    private Cliente cliente; //Cliente al que se le prestó la dirección IP.
+    private LocalDateTime horaInicio; //Hora de inicio del arrendamiento.
+    private LocalDateTime horaRevocacion; //Hora de revocación del arrendamiento/hora de vencimiento de oferta
+    //Parámetros de configuración
+    private byte[] mascara; //Máscara de red del arrendamiento
+    private ArrayList<byte[]> gateway; //Lista de gateways del arrendamiento
+    private ArrayList<byte[]> dns; //Lista de dns del arrendamiento
+    private PaqueteDHCP solicitud; //Paquete DHCP con la solicitud inicial
 
     public Arrendamiento() {
         vigente=false;

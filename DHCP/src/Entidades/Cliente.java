@@ -7,13 +7,13 @@ package Entidades;
 
 /**
  *
- * @author Danny
+ * Realizado por Daniel Hernández y Juan Carlos Suárez.
  */
 public class Cliente {
-    private byte[] mac;
-    private Subred subred;
-    private Arrendamiento arrendamientoActual;
-    private Arrendamiento arrendamientoAnterior;
+    private byte[] mac; //Dirección MAC del cliente
+    private Subred subred; //Subred del cliente
+    private Arrendamiento arrendamientoActual; //Arrendamiento actual del cliente
+    private Arrendamiento arrendamientoAnterior; //Arrendamiento anterior del cliente
 
     public Cliente() {
         mac=new byte[6];

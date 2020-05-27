@@ -7,11 +7,11 @@ package Entidades;
 
 /**
  *
- * @author Danny
+ * Realizado por Daniel Hernández y Juan Carlos Suárez.
  */
 public class DireccionIP {
-    private byte[] direccion;
-    private boolean disponible;
+    private byte[] direccion; //Dirección IP
+    private boolean disponible; //Booleano que indica si la dirección está disponible
 
     public DireccionIP() {
         direccion=new byte[4];

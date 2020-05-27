@@ -13,7 +13,7 @@ import java.net.InetAddress;
 
 /**
  *
- * @author Danny
+ * Realizado por Daniel Hernández y Juan Carlos Suárez.
  */
 public class DHCP {
 

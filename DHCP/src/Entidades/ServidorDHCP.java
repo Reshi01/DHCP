@@ -32,18 +32,19 @@ import javax.swing.JOptionPane;
 
 /**
  *
- * @author Danny
+ * Realizado por Daniel Hernández y Juan Carlos Suárez.
  */
 public class ServidorDHCP {
 
-    private InetAddress ip;
-    private DatagramSocket socket;
-    private ArrayList<Subred> subredes;
-    private Map<Pair<Integer, byte[]>, Cliente> clientes;
-    private Map<Pair<byte[], byte[]>, Arrendamiento> arrendamientos;
-    private Map<DireccionIP, Arrendamiento> ofertas;
-    private Thread hilo;
+    private InetAddress ip; //Dirección IP del servidor
+    private DatagramSocket socket; //Socket para recibir y enviar paquetes UDP
+    private ArrayList<Subred> subredes; //Lista de subredes
+    private Map<Pair<Integer, byte[]>, Cliente> clientes; //Mapa de clientes. La llave es la pareja de número de subred y dirección MAC del cliente. El valor es el objeto Cliente.
+    private Map<Pair<byte[], byte[]>, Arrendamiento> arrendamientos; //Mapa de arrendamientos. La llave es la pareja de dirección MAC del cliente y dirección IP prestada. El valor es el objeto Arrendamiento.
+    private Map<DireccionIP, Arrendamiento> ofertas; //Mapa de ofertas. La llave es la dirección IP ofrecida y el valor es el objeto Arrendamiento correspondiente a la oferta.
+    private Thread hilo; //Hilo utilizado para revisar si han caducado los arrendamientos.
 
+    //Constructor
     public ServidorDHCP() {
         subredes = new ArrayList<>();
         clientes = new HashMap<Pair<Integer, byte[]>, Cliente>();
@@ -51,6 +52,7 @@ public class ServidorDHCP {
         ofertas = new HashMap<DireccionIP, Arrendamiento>();
     }
 
+    //Método que lleva a cabo la revocación del arrendamiento arr y envía un mensaje DHCPNAK al cliente.
     private void revocarArrendamiento(Arrendamiento arr) throws IOException {
         arr.setVigente(false);
         Cliente cliente = arr.getCliente();
@@ -65,6 +67,7 @@ public class ServidorDHCP {
         socket.send(pRespuesta); //Se envía el paquete
     }
 
+    //Método en el que se realiza el ciclo de recepción y manejo de paquetes.
     public void correrServidor() {
         byte[] bytesR = new byte[65535];
         DatagramPacket dRecibido;
@@ -108,12 +111,6 @@ public class ServidorDHCP {
                 dRecibido = new DatagramPacket(bytesR, bytesR.length);
                 socket.receive(dRecibido);
                 pDHCP = new PaqueteDHCP(bytesR);
-
-//                //IMPRESIONES PARA DEPURAR
-//                System.out.println("");
-//                System.out.println("Mensaje Recibido:");
-//                System.out.println("Message Type: " + Byte.toUnsignedInt(pDHCP.getMessageType()));
-//                //FIN IMPRESIONES
 
                 //Se revisa que sea BOOTREQUEST
                 if (Byte.toUnsignedInt(pDHCP.getOp()) == 1) {
@@ -250,7 +247,7 @@ public class ServidorDHCP {
 
     }
 
-    //Obtiene el datagrama DHCP a enviar dado un paquete recibido DHCP y un paquete a enviar rDHCP. Utilizado con mensajes DHCPOFFER y DHCPACK
+    //Método que obtiene el datagrama DHCP a enviar dado un paquete recibido pDHCP y un paquete a enviar rDHCP. Utilizado con mensajes DHCPOFFER y DHCPACK
     private DatagramPacket obtenerDatagrama(PaqueteDHCP pDHCP, PaqueteDHCP rDHCP) throws UnknownHostException {
         byte[] respuesta = rDHCP.construirPaquete();
         if ((Byte.toUnsignedInt(pDHCP.getGiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[3]) == 0)) {
@@ -270,40 +267,7 @@ public class ServidorDHCP {
         }
     }
 
-//    //Obtiene el datagrama DHCP a enviar dado un paquete recibido DHCP y un paquete a enviar rDHCP. Utilizado con mensajes DHCPOFFER y DHCPACK
-//    private DatagramPacket obtenerDatagrama(PaqueteDHCP pDHCP, PaqueteDHCP rDHCP) throws UnknownHostException, IOException {
-//        byte[] respuesta = rDHCP.construirPaquete();
-//        if ((Byte.toUnsignedInt(pDHCP.getGiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[3]) == 0)) {
-//            if ((Byte.toUnsignedInt(pDHCP.getCiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getCiaddr()[3]) == 0)) {
-//                if (Byte.toUnsignedInt(pDHCP.getFlags()[0]) == 255) {
-//                    //Si giaddr y ciaddr son cero y el bit boradcast está en 1, se envía el mensaje a la dirección broadcast
-//                    System.out.println("Band 1");
-//                    byte[] broadcast = new byte[4];
-//                    broadcast[0] = (byte) (255 & 0xff);
-//                    broadcast[1] = (byte) (255 & 0xff);
-//                    broadcast[2] = (byte) (255 & 0xff);
-//                    broadcast[3] = (byte) (255 & 0xff);
-//                    return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(broadcast), 68);
-//                } else { //Si giaddr y ciaddr son cero, pero el bit boradcast está en 0, se envía el mensaje a la dirección a prestar y a la MAC del cliente
-//                    //Agregar en tabla ARP una entrada que relacione a chaddr con yiaddr
-//                    Runtime runtime = Runtime.getRuntime();
-//                    Process proceso = runtime.exec("arp -s " + Byte.toUnsignedInt(rDHCP.getYiaddr()[0]) + "." + Byte.toUnsignedInt(rDHCP.getYiaddr()[1]) + "." + Byte.toUnsignedInt(rDHCP.getYiaddr()[2]) + "." + Byte.toUnsignedInt(rDHCP.getYiaddr()[3]) + " "
-//                            + String.format("%02X", pDHCP.getChaddr()[0]) + "-" + String.format("%02X", pDHCP.getChaddr()[1]) + "-" + String.format("%02X", pDHCP.getChaddr()[2]) + "-" + String.format("%02X", pDHCP.getChaddr()[3]) + "-" + String.format("%02X", pDHCP.getChaddr()[4])
-//                            + "-" + String.format("%02X", pDHCP.getChaddr()[5]));
-//                    //Enviar a dirección en yiaddr.
-//                    return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(rDHCP.getYiaddr()), 68);
-//                }
-//
-//            } else { //Si giaddr es cero y ciaddr no, se envía el mensaje a la dirección en ciaddr
-//                System.out.println("Band 2");
-//                return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getCiaddr()), 68);
-//            }
-//        } else { //Si giaddr no es cero, se envía el mensaje al puerto de servidor DHCP de la dirección en ese campo
-//            System.out.println("Band 3");
-//            return new DatagramPacket(respuesta, respuesta.length, InetAddress.getByAddress(pDHCP.getGiaddr()), 67);
-//        }
-//    }
-    //Obtiene el datagrama DHCP a enviar dado un paquete recibido DHCP y un paquete a enviar rDHCP. Utilizado con mensajes DHCNAK.
+    //Método que obtiene el datagrama DHCP a enviar dado un paquete recibido pDHCP y un paquete a enviar rDHCP. Utilizado con mensajes DHCPNAK.
     private DatagramPacket obtenerDatagramaNack(PaqueteDHCP pDHCP, PaqueteDHCP rDHCP) throws UnknownHostException {
         byte[] respuesta = rDHCP.construirPaquete();
         if ((Byte.toUnsignedInt(pDHCP.getGiaddr()[0]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[1]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[2]) == 0) && (Byte.toUnsignedInt(pDHCP.getGiaddr()[3]) == 0)) {
@@ -319,6 +283,7 @@ public class ServidorDHCP {
         }
     }
 
+    //Método que retorna el objeto Cliente correspondiente al paquete recibido como parámetro. Si el cliente no ha sido creado, se crea. Si el cliente no pertenece a ninguna de las subredes manejadas por el servidor, ser retorna nulo.
     private Cliente obtenerCliente(PaqueteDHCP paquete) {
         byte[] dir = new byte[4];
         byte[] subR = new byte[4];
@@ -360,6 +325,7 @@ public class ServidorDHCP {
         return null;
     }
 
+    //Método que indica si la dirección IP recibida como parámetro pertenece a la subred recibida como parámetro.
     private boolean perteneceSubred(byte[] direccion, Subred subred) {
         byte[] subR = new byte[4];
         //Aplicar máscara de red
@@ -420,6 +386,7 @@ public class ServidorDHCP {
         this.ofertas = ofertas;
     }
 
+    //Método que crea paquete DHCPOFFER dirigido al cliente recibido como parámetro, como respuesta al paquete DHCPDISCOVER recibido como parámetro.
     public PaqueteDHCP crearPaqueteDHCPOffer(Cliente cliente, PaqueteDHCP paqueteDiscover) {
         //direccionAsignada verifica que si se pudo asignar una direccion
         //igual se usa para buescar una DireccionIP que tenga la direccion requerida por el cliente
@@ -529,6 +496,7 @@ public class ServidorDHCP {
         return paqueteOffer;
     }
 
+    //Método que crea un paquete DHCPACK dirigido al cliente recibido como parámetro, como respuesta al paquete DHCPREQUEST recibido como parámetro.
     public PaqueteDHCP crearPaqueteDHCPAck(Cliente cliente, PaqueteDHCP paqueteRequest) {
         PaqueteDHCP paqueteAck = new PaqueteDHCP();
         //Configuracion de parametros de paquete ACK
@@ -564,6 +532,7 @@ public class ServidorDHCP {
         return paqueteAck;
     }
 
+    //Método que crea un paquete DHCPNAK dirigido al cliente recibido como parámetro, como respuesta al paquete DHCPREQUEST recibido como parámetro.
     public PaqueteDHCP crearPaqueteDHCPNack(Cliente cliente, PaqueteDHCP paqueteRequest) {
         PaqueteDHCP paqueteNack = new PaqueteDHCP();
         //Configuracion de opciones de paquete NACK
@@ -593,6 +562,7 @@ public class ServidorDHCP {
         return paqueteNack;
     }
 
+    //Método que configura el servidor a partir del archivo que seleccione el usuario.
     public boolean cofigurar() throws FileNotFoundException, IOException {
         JFileChooser selector = new JFileChooser();
         JOptionPane.showMessageDialog(null, "Indique archivo de configuracion", "Indique archivo de configuracion", JOptionPane.INFORMATION_MESSAGE);
@@ -633,8 +603,8 @@ public class ServidorDHCP {
         return true;
     }
 
-    // a partir del arreglo de datos crea una subred y la anade al arreglo de subredes.
-    //Para cada direccion se divide en los octetos(Strings), los cuales se convierten a integer y luego a byte
+    //Método que a partir del arreglo de datos crea una subred y la añade al arreglo de subredes.
+    //Para cada direccion se divide en los octetos(Strings), los cuales se convierten a integer y luego a byte.
     private void agregarSubred(String[] datos) {
         Subred subred = new Subred();
         String[] direccion;
@@ -703,9 +673,9 @@ public class ServidorDHCP {
         this.subredes.add(subred);
 
     }
-//Para una subred genera las direcciones posibles entre la posicion 0 de direcciones y posicion  1 del arreglo de direcciones. (Primera y ultima direccion)
-//Se revisa si la suma es posible sin salirse del rango (<=255)
-
+    
+//Método que para una subred genera las direcciones posibles entre la posicion 0 de direcciones y posicion  1 del arreglo de direcciones. (Primera y ultima direccion)
+//Se revisa si la suma es posible sin salirse del rango (<=255
     private void completarDireccionesIp(Subred subred) {
         byte[] ultima = subred.getDirecciones().get(1).getDireccion();
         byte[] aux = new byte[4];
@@ -760,6 +730,7 @@ public class ServidorDHCP {
         } while (!fin);
     }
 
+    //Método que convierte un entero en un arreglo de 4 bytes.
     private byte[] intToByteArray(int data) {
         return new byte[]{
             (byte) ((data >> 24) & 0xff),
@@ -768,10 +739,12 @@ public class ServidorDHCP {
             (byte) ((data >> 0) & 0xff)};
     }
 
+    //Método que convierte un arreglo de bytes en un entero.
     private int byteArrayToInt(byte[] data) {
         return ByteBuffer.wrap(data).getInt();
     }
 
+    //Método que imprime la acción realizada por el servidor. Se imprime el mensaje y la información del cliente recibidos como parámetros.
     public void imprimirCambio(Cliente cliente, String mensaje) {
         System.out.println("----------------------------------------------------");
         System.out.println(mensaje + ":");
@@ -786,6 +759,7 @@ public class ServidorDHCP {
         }
     }
 
+    //Método que actualiza el log con una nueva acción realizada por el servidor. Se escriben el mensaje y los datos del cliente mandados como parámetros.
     public void actualizarLog(Cliente cliente, String mensaje) throws IOException {
         boolean nuevo = false;
         String texto, mac, ipAsignada;
@@ -831,6 +805,7 @@ public class ServidorDHCP {
         bw.close();
     }
 
+    //Método que crea el archivo log para llevar registro de las acciones realizadas por el servidor.
     private void crearLog() throws IOException {
         BufferedWriter bw = null;
         FileWriter fw = null;
@@ -846,6 +821,7 @@ public class ServidorDHCP {
         bw.close();
     }
     
+    //Método que elimina las ofertas que ya hayan caducado.
     private void actualizarOfertas(){
         ArrayList<DireccionIP> eliminar = new ArrayList<>();
         for(DireccionIP d : ofertas.keySet()){

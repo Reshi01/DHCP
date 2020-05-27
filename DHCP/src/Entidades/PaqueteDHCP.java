@@ -9,36 +9,37 @@ import java.util.ArrayList;
 
 /**
  *
- * @author Danny
+ * Realizado por Daniel Hernández y Juan Carlos Suárez.
  */
 public class PaqueteDHCP {
-    private byte op;
-    private byte htype;
-    private byte hlen;
-    private byte hops;
-    private byte[] xid;
-    private byte[] secs;
-    private byte[] flags;
-    private byte[] ciaddr;
-    private byte[] yiaddr;
-    private byte[] siaddr;
-    private byte[] giaddr;
-    private byte[] chaddr;
-    private byte[] sname;
-    private byte[] file;
-    private byte messageType;
-    private ArrayList<Integer> parameterRequestList = null;
-    private byte[] requestedIpAddress = null;
-    private byte[] ipAddressLeaseTime = null;
-    private byte[] serverIdentifier = null;
-    private byte[] subnetMask = null;
-    private ArrayList<byte[]> dns = null;
-    private ArrayList<byte[]> router = null;
+    private byte op; //Contenido de campo op
+    private byte htype; //Contenido de campo htype
+    private byte hlen; //Contenido de campo hlen
+    private byte hops; //Contenido de campo hops
+    private byte[] xid; //Contenido de campo xid
+    private byte[] secs; //Contenido de campo secs
+    private byte[] flags; //Contenido de campo flags
+    private byte[] ciaddr; //Contenido de campo ciaddr
+    private byte[] yiaddr; //Contenido de campo yiaddr
+    private byte[] siaddr; //Contenido de campo siaddr
+    private byte[] giaddr; //Contenido de campo giaddr
+    private byte[] chaddr; //Contenido de campo chaddr
+    private byte[] sname; //Contenido de campo sname
+    private byte[] file; //Contenido de campo file
+    private byte messageType; //Opción message type
+    private ArrayList<Integer> parameterRequestList = null; //Arreglo con códigos incluidos en opción parameter request list
+    private byte[] requestedIpAddress = null; //Opción requested IP address
+    private byte[] ipAddressLeaseTime = null; //Opción IP address lease time
+    private byte[] serverIdentifier = null; //Opción server identifier
+    private byte[] subnetMask = null; //Opción subnetMask
+    private ArrayList<byte[]> dns = null; //Arreglo con direcciones incluidas en opción dns
+    private ArrayList<byte[]> router = null; //Opción con direcciones incluidas en opción router
 
     public PaqueteDHCP(){
         
     }
     
+    //Constructor que llena los atributos de la clase a partir del arreglo de bytes del mensaje DHCP.
     public PaqueteDHCP(byte[] bytes) {
         if(bytes.length < 548){ //El tamaño mínimo del mensaje es de 548 bytes
             System.out.println("Ocurrió un problema leyendo los bytes.");
@@ -169,6 +170,7 @@ public class PaqueteDHCP {
         }
     }
     
+    //Método que retorna el arreglo de bytes del paquete DHCP construido a partir de los atributos del objeto.
     public byte[] construirPaquete(){
         //Primero se calcula el tamaño de las opciones
         int tamOp = 5; //Magic Cookie + end
